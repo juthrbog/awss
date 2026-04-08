@@ -3,11 +3,18 @@ package config
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 )
+
+// Profile holds metadata for a single AWS profile.
+type Profile struct {
+	Name   string
+	Region string
+}
 
 // DefaultConfigPath returns the path to the AWS config file,
 // respecting the AWS_CONFIG_FILE environment variable.
@@ -102,6 +109,93 @@ func scanSections(path string, fn func(string)) error {
 		}
 	}
 	return scanner.Err()
+}
+
+// LoadProfile reads the config and credentials files and returns the
+// named profile with its settings. Returns an error if the profile
+// does not exist in either file.
+func LoadProfile(configPath, credentialsPath, name string) (Profile, error) {
+	p := Profile{Name: name}
+
+	// Config file uses [default] or [profile X]; credentials uses [default] or [X].
+	configSection := "profile " + name
+	if name == "default" {
+		configSection = "default"
+	}
+	credsSection := name
+
+	foundConfig, region := scanProfileRegion(configPath, configSection)
+	if region != "" {
+		p.Region = region
+	}
+
+	foundCreds, credsRegion := scanProfileRegion(credentialsPath, credsSection)
+	// Credentials region is used only if config didn't provide one.
+	if p.Region == "" && credsRegion != "" {
+		p.Region = credsRegion
+	}
+
+	if !foundConfig && !foundCreds {
+		return Profile{}, fmt.Errorf("profile %q not found", name)
+	}
+	return p, nil
+}
+
+// scanProfileRegion reads an INI file and returns whether the target
+// section exists and its region value (empty string if not set).
+func scanProfileRegion(path, section string) (found bool, region string) {
+	path = filepath.Clean(path)
+	f, err := os.Open(path)
+	if err != nil {
+		return false, ""
+	}
+	defer f.Close()
+
+	inSection := false
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+
+		// New section header — check if it's ours.
+		if strings.HasPrefix(line, "[") {
+			line = stripInlineComment(line)
+			if idx := strings.Index(line, "]"); idx > 0 {
+				header := strings.TrimSpace(line[1:idx])
+				inSection = header == section
+				if inSection {
+					found = true
+				}
+			}
+			continue
+		}
+
+		if !inSection {
+			continue
+		}
+
+		// Skip comments and blank lines.
+		if line == "" || line[0] == '#' || line[0] == ';' {
+			continue
+		}
+
+		// Parse key = value.
+		eqIdx := strings.Index(line, "=")
+		if eqIdx < 0 {
+			continue
+		}
+		key := strings.TrimSpace(line[:eqIdx])
+		if key == "region" {
+			val := strings.TrimSpace(line[eqIdx+1:])
+			// Strip inline comments from the value.
+			for _, ch := range []string{" #", " ;"} {
+				if i := strings.Index(val, ch); i >= 0 {
+					val = strings.TrimSpace(val[:i])
+				}
+			}
+			region = val
+		}
+	}
+	return found, region
 }
 
 // stripInlineComment removes inline comments (# or ;) that appear
