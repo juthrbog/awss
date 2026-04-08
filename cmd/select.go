@@ -8,7 +8,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var shellFlag string
+
 func init() {
+	selectCmd.Flags().StringVar(&shellFlag, "shell", "", "output syntax: bash, zsh, or fish (default bash)")
 	rootCmd.AddCommand(selectCmd)
 }
 
@@ -30,8 +33,7 @@ var selectCmd = &cobra.Command{
 			return err
 		}
 
-		// TODO: Implement formatExports — see comment below.
-		fmt.Print(formatExports(profile))
+		fmt.Print(formatExports(profile, shellFlag))
 		return nil
 	},
 }
@@ -40,13 +42,23 @@ var selectCmd = &cobra.Command{
 //
 // Always emits AWS_PROFILE. Emits AWS_REGION when the profile defines one,
 // otherwise unsets it to prevent stale values from a previous switch.
-func formatExports(p config.Profile) string {
+// When shell is "fish", outputs fish-compatible set/set -e syntax.
+func formatExports(p config.Profile, shell string) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "export AWS_PROFILE=%s\n", p.Name)
-	if p.Region != "" {
-		fmt.Fprintf(&b, "export AWS_REGION=%s\n", p.Region)
+	if shell == "fish" {
+		fmt.Fprintf(&b, "set -gx AWS_PROFILE %s\n", p.Name)
+		if p.Region != "" {
+			fmt.Fprintf(&b, "set -gx AWS_REGION %s\n", p.Region)
+		} else {
+			b.WriteString("set -e AWS_REGION\n")
+		}
 	} else {
-		b.WriteString("unset AWS_REGION\n")
+		fmt.Fprintf(&b, "export AWS_PROFILE=%s\n", p.Name)
+		if p.Region != "" {
+			fmt.Fprintf(&b, "export AWS_REGION=%s\n", p.Region)
+		} else {
+			b.WriteString("unset AWS_REGION\n")
+		}
 	}
 	return b.String()
 }
