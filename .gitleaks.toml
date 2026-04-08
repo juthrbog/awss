@@ -1,0 +1,4 @@
+[allowlist]
+# Commit 33211a9 contained AWS example keys from documentation in
+# scripts/dev-env.sh. They were replaced with obvious fakes in 4099a7a.
+commits = ["33211a9f94664990a699d678812f76d7841f20f7"]
