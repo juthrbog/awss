@@ -56,16 +56,16 @@ EOF
 
 cat > "$tmpdir/credentials" <<'EOF'
 [default]
-aws_access_key_id = AKIAIOSFODNN7EXAMPLE
-aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+aws_access_key_id = FAKE_KEY_DEFAULT
+aws_secret_access_key = FAKE_SECRET_DEFAULT
 
 [production]
-aws_access_key_id = AKIAI44QH8DHBEXAMPLE
-aws_secret_access_key = je7MtGbClwBF/2Zp9Utk/h3yCo8nvbEXAMPLEKEY
+aws_access_key_id = FAKE_KEY_PRODUCTION
+aws_secret_access_key = FAKE_SECRET_PRODUCTION
 
 [dev-only]
-aws_access_key_id = AKIAIOSFODNN7DEVONLY
-aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/devOnlyEXAMPLEKEY
+aws_access_key_id = FAKE_KEY_DEV_ONLY
+aws_secret_access_key = FAKE_SECRET_DEV_ONLY
 EOF
 
 echo "export AWS_CONFIG_FILE=\"$tmpdir/config\""
