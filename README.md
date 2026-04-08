@@ -2,7 +2,7 @@
 
 A fast, interactive AWS profile and region switcher. Like [kubectx](https://github.com/ahmetb/kubectx) for AWS.
 
-> **Status:** Early development — profile listing works, interactive picker and shell integration coming soon.
+> **Status:** Early development — profile listing and switching work, interactive picker and shell integration coming soon.
 
 ## Usage
 
@@ -27,6 +27,15 @@ source <(awss init bash)   # or zsh/fish
 
 ```bash
 go install github.com/juthrbog/awss@latest
+```
+
+## Development
+
+```bash
+eval "$(./scripts/dev-env.sh)"           # create fixture AWS config and activate
+go run . list                             # verify profiles
+go run . select production                # test switching
+eval "$(./scripts/dev-env.sh teardown)"   # deactivate and clean up
 ```
 
 ## License

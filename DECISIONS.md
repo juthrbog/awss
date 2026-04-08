@@ -18,7 +18,22 @@
 
 ---
 
-## 2. SSO login flow on expired tokens
+## 2. Unset `AWS_REGION` on switch when profile has no region
+
+**Status:** Decided — **Option A: Always clean up**
+
+**Decision:** When `awss select` switches to a profile that does not define a region, it emits `unset AWS_REGION` rather than leaving the variable untouched.
+
+**Rationale:**
+- Prevents a stale `AWS_REGION` from a previous `awss select` silently applying to the new profile
+- Matches the behavior of tools like aws-vault and granted that clean up after themselves
+- Makes the shell state predictable: after a switch, `AWS_REGION` always reflects the current profile
+
+**Trade-off:** A user who sets `AWS_REGION` independently (outside of `awss`) will have it cleared on switch. This is acceptable because `awss` owns the region lifecycle once you start using it — mixing manual and tool-managed region state leads to confusion regardless.
+
+---
+
+## 3. SSO login flow on expired tokens
 
 **Status:** Open — decide during Phase 4 or 5
 
@@ -47,7 +62,7 @@
 
 ---
 
-## 3. MFA handling
+## 4. MFA handling
 
 **Status:** Decided — **Out of scope**
 
