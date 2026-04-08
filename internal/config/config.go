@@ -86,7 +86,7 @@ func scanSections(path string, fn func(string)) error {
 		}
 		return err
 	}
-	defer func() { _ = f.Close() }()
+	defer f.Close()
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
