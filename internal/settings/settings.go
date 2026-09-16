@@ -45,7 +45,7 @@ func Path() string {
 // Load reads the settings file at path. A missing file yields empty settings.
 func Load(path string) (Settings, error) {
 	var s Settings
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return s, nil

@@ -78,7 +78,7 @@ func (loader Loader) tokenPath() (string, error) {
 		}
 		dir = filepath.Join(home, ".aws", "sso", "cache")
 	}
-	return filepath.Join(dir, cacheFileName(loader.StartURL)), nil
+	return filepath.Clean(filepath.Join(dir, cacheFileName(loader.StartURL))), nil
 }
 
 func (loader Loader) loadToken() (token, error) {
@@ -87,7 +87,7 @@ func (loader Loader) loadToken() (token, error) {
 		return token{}, err
 	}
 
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return token{}, &InvalidTokenError{Err: errors.New("no cached token")}
@@ -116,7 +116,9 @@ func (loader Loader) writeToken(t token) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("creating token cache directory: %w", err)
 	}
-	data, err := json.MarshalIndent(t, "", "  ")
+	// The token is written to the AWS CLI's own cache location with mode 0600.
+	// Persisting it is the purpose of this file, not a leak.
+	data, err := json.MarshalIndent(t, "", "  ") //nolint:gosec // G117: intentional token cache write
 	if err != nil {
 		return err
 	}

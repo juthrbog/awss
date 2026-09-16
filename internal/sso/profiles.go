@@ -3,7 +3,6 @@ package sso
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"gopkg.in/ini.v1"
 )
@@ -76,18 +75,6 @@ func setKey(s *ini.Section, key, value string) error {
 	}
 	_, err := s.NewKey(key, value)
 	return err
-}
-
-func profileFromINISection(s *ini.Section) Profile {
-	kv := s.KeysHash()
-	return Profile{
-		Name:         strings.TrimPrefix(s.Name(), "profile "),
-		SSOStartURL:  kv["sso_start_url"],
-		SSORegion:    kv["sso_region"],
-		SSOAccountID: kv["sso_account_id"],
-		SSORoleName:  kv["sso_role_name"],
-		Region:       kv["region"],
-	}
 }
 
 func (loader Loader) newProfile(name string, r Role) Profile {

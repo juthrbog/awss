@@ -10,8 +10,8 @@ import (
 func TestIsKeyTrue(t *testing.T) {
 	f := ini.Empty()
 	s := f.Section("test")
-	s.NewKey("enabled", "true")
-	s.NewKey("disabled", "false")
+	mustKey(t, s, "enabled", "true")
+	mustKey(t, s, "disabled", "false")
 
 	if !isKeyTrue(s, "enabled") {
 		t.Error("enabled=true should be true")
@@ -26,8 +26,8 @@ func TestIsKeyTrue(t *testing.T) {
 
 func TestIsManagedSection(t *testing.T) {
 	f := ini.Empty()
-	f.Section("profile managed").NewKey(managedKey, "true")
-	f.Section("profile plain").NewKey("sso_start_url", "https://example.awsapps.com/start")
+	mustKey(t, f.Section("profile managed"), managedKey, "true")
+	mustKey(t, f.Section("profile plain"), "sso_start_url", "https://example.awsapps.com/start")
 
 	if !isManagedSection(f, "profile managed") {
 		t.Error("section with awss_managed=true should be managed")
@@ -42,14 +42,14 @@ func TestManagedSections_FiltersByStartURL(t *testing.T) {
 	url := "https://example.awsapps.com/start"
 
 	s1 := f.Section("profile managed")
-	s1.NewKey(managedKey, "true")
-	s1.NewKey("sso_start_url", url)
+	mustKey(t, s1, managedKey, "true")
+	mustKey(t, s1, "sso_start_url", url)
 
 	s2 := f.Section("profile other-url")
-	s2.NewKey(managedKey, "true")
-	s2.NewKey("sso_start_url", "https://other.awsapps.com/start")
+	mustKey(t, s2, managedKey, "true")
+	mustKey(t, s2, "sso_start_url", "https://other.awsapps.com/start")
 
-	f.Section("profile unmanaged").NewKey("sso_start_url", url)
+	mustKey(t, f.Section("profile unmanaged"), "sso_start_url", url)
 
 	got := managedSections(f, url)
 	if len(got) != 1 {

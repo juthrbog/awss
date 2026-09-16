@@ -10,6 +10,7 @@ import (
 
 // loadINI opens path, creating it with mode 0600 if it does not exist.
 func loadINI(path string) (*ini.File, error) {
+	path = filepath.Clean(path)
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return nil, err
 	}

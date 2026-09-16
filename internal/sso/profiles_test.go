@@ -45,8 +45,8 @@ func TestUpdateINIFile_FreshSection(t *testing.T) {
 func TestUpdateINIFile_KeepsUserRegion(t *testing.T) {
 	f := ini.Empty()
 	s := f.Section("profile test-profile")
-	s.NewKey(managedKey, "true")
-	s.NewKey("region", "eu-west-1")
+	mustKey(t, s, managedKey, "true")
+	mustKey(t, s, "region", "eu-west-1")
 
 	if err := testProfile().updateINIFile(f); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -58,7 +58,7 @@ func TestUpdateINIFile_KeepsUserRegion(t *testing.T) {
 
 func TestUpdateINIFile_RejectsUnmanagedSection(t *testing.T) {
 	f := ini.Empty()
-	f.Section("profile test-profile").NewKey("sso_start_url", "https://example.awsapps.com/start")
+	mustKey(t, f.Section("profile test-profile"), "sso_start_url", "https://example.awsapps.com/start")
 
 	if err := testProfile().updateINIFile(f); err == nil {
 		t.Fatal("expected error when updating unmanaged section")
@@ -83,14 +83,14 @@ func TestUpdateConfigINI_RemovesStaleManagedSections(t *testing.T) {
 	url := "https://example.awsapps.com/start"
 
 	stale := f.Section("profile old-role")
-	stale.NewKey(managedKey, "true")
-	stale.NewKey("sso_start_url", url)
+	mustKey(t, stale, managedKey, "true")
+	mustKey(t, stale, "sso_start_url", url)
 
 	otherOrg := f.Section("profile other-org")
-	otherOrg.NewKey(managedKey, "true")
-	otherOrg.NewKey("sso_start_url", "https://other.awsapps.com/start")
+	mustKey(t, otherOrg, managedKey, "true")
+	mustKey(t, otherOrg, "sso_start_url", "https://other.awsapps.com/start")
 
-	f.Section("profile mine").NewKey("region", "us-west-2")
+	mustKey(t, f.Section("profile mine"), "region", "us-west-2")
 
 	if err := updateConfigINI(f, []Profile{testProfile()}); err != nil {
 		t.Fatalf("unexpected error: %v", err)

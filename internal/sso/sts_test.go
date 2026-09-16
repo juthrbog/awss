@@ -13,18 +13,18 @@ func TestUpdateCredentialsINI(t *testing.T) {
 
 	// Expired managed credentials for this start URL: should be removed.
 	old := f.Section("old")
-	old.NewKey(managedKey, "true")
-	old.NewKey("sso_start_url", url)
-	old.NewKey("expiration", time.Now().Add(-time.Hour).Format(time.RFC3339))
+	mustKey(t, old, managedKey, "true")
+	mustKey(t, old, "sso_start_url", url)
+	mustKey(t, old, "expiration", time.Now().Add(-time.Hour).Format(time.RFC3339))
 
 	// Still-valid managed credentials not in this batch: should be kept.
 	live := f.Section("live")
-	live.NewKey(managedKey, "true")
-	live.NewKey("sso_start_url", url)
-	live.NewKey("expiration", time.Now().Add(time.Hour).Format(time.RFC3339))
+	mustKey(t, live, managedKey, "true")
+	mustKey(t, live, "sso_start_url", url)
+	mustKey(t, live, "expiration", time.Now().Add(time.Hour).Format(time.RFC3339))
 
 	// User-owned credentials: never touched.
-	f.Section("mine").NewKey("aws_access_key_id", "FAKE")
+	mustKey(t, f.Section("mine"), "aws_access_key_id", "FAKE")
 
 	creds := []STSCredentials{{
 		Name:            "fresh",
@@ -57,7 +57,7 @@ func TestUpdateCredentialsINI(t *testing.T) {
 
 func TestSTSCredentials_RejectsUnmanaged(t *testing.T) {
 	f := ini.Empty()
-	f.Section("mine").NewKey("aws_access_key_id", "FAKE")
+	mustKey(t, f.Section("mine"), "aws_access_key_id", "FAKE")
 
 	c := STSCredentials{Name: "mine"}
 	if err := c.updateINIFile(f, "https://example.awsapps.com/start"); err == nil {
