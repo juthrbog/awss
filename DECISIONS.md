@@ -35,30 +35,22 @@
 
 ## 3. SSO login flow on expired tokens
 
-**Status:** Open — decide during Phase 4 or 5
+**Status:** Partly decided — `awss login` owns the login; `awss select` stays passive
+
+**Decision:** `awss login` (Decision 5) runs the device login itself when the cached token is missing or expired, so the "how do I log in" question has an answer inside the tool. `awss select` still does not inspect the token cache. Whether `select` should warn on an expired token (Option B below) stays open.
 
 **Context:** When a user selects an SSO profile whose cached token has expired, the next AWS API call will fail. The tool could detect this proactively and help.
 
-**Option A: Don't handle it — out of scope**
-- `awss` is a profile switcher, not a credential manager
-- Users already know to run `aws sso login --profile <name>`
-- Keeps the tool simple and focused
+**Option A: Don't handle it in `select`**
+- Users can run `awss login` or `aws sso login --profile <name>`
+- Keeps `select` simple and fast
 
-**Option B: Detect and warn**
+**Option B: Detect and warn in `select`**
 - After switching, check if the SSO token cache file exists and is expired
-- Print a warning to stderr: `SSO token expired. Run: aws sso login --profile <name>`
-- No automatic action, just a helpful nudge
+- Print a warning to stderr: `SSO token expired. Run: awss login`
+- No automatic action, just a nudge
 
-**Option C: Detect and offer to login**
-- Same detection as B, but prompt the user to run `aws sso login`
-- Or run it automatically (risky — opens a browser)
-- Granted does this automatically
-
-**Leaning toward:** B — low cost, high value, no surprising side effects.
-
-### Considerations
-- Token cache lives at `~/.aws/sso/cache/` — is it feasible to check expiry without the SDK doing it?
-- If using `aws-sdk-go-v2/config` to load profiles, does the SDK surface token expiry status?
+**Leaning toward:** B for `select`. The token cache code now lives in `internal/sso`, so the check is cheap to add.
 
 ---
 
@@ -67,3 +59,41 @@
 **Status:** Decided — **Out of scope**
 
 **Rationale:** Since Decision 1 chose `AWS_PROFILE` only, MFA is entirely the SDK's problem. When a tool uses a profile with `mfa_serial`, the SDK prompts for the TOTP code at credential resolution time. `awss` never resolves credentials, so there's nothing to handle.
+
+---
+
+## 5. SSO login and profile generation are in scope
+
+**Status:** Decided
+
+**Decision:** `awss login` discovers every account and role a user can reach through IAM Identity Center and writes one profile per role into `~/.aws/config`. With `--sts` it also writes short-lived keys into `~/.aws/credentials` for tools that cannot read SSO profiles.
+
+**Rationale:**
+- Switching profiles is only useful once profiles exist. For SSO users with many accounts, writing them by hand is the main friction.
+- Decision 1 is untouched: `select` still exports only `AWS_PROFILE` and `AWS_REGION`. Credentials never enter the environment.
+- The `--sts` path writes to the credentials file, not the shell, so the SDK still resolves through `AWS_PROFILE`.
+
+**Guard rails:**
+- Every section awss writes carries `awss_managed = true`. Sections without it are never modified or deleted.
+- Writing over an unmanaged section is an error, not a silent overwrite.
+- Stale managed sections for the same start URL are removed so `list` does not fill up with dead profiles.
+- Start URL, SSO region, and name template come from flags or `~/.config/awss/config.yaml`. Nothing about any particular organization is built in.
+
+---
+
+## 6. Legacy vs `sso-session` profile format
+
+**Status:** Open
+
+**Context:** `awss login` writes the legacy per-profile format (`sso_start_url`, `sso_region`, `sso_account_id`, `sso_role_name` on each profile) and caches the token under `sha1(start_url)`, matching `aws sso login` in legacy mode. The newer `[sso-session]` format shares one block across profiles, supports token refresh, and caches under `sha1(session_name)`.
+
+**Option A: Keep legacy format**
+- Works with every SDK and CLI version
+- Matches the current token cache logic
+
+**Option B: Write `[sso-session]` blocks**
+- Refreshable tokens, fewer browser prompts
+- Requires changing the managed-section logic to track the session block and the cache key
+- Older SDKs do not understand it
+
+**Leaning toward:** B eventually, once the picker is done. Not blocking.
