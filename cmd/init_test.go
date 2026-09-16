@@ -16,6 +16,7 @@ func TestRenderInit_Bash(t *testing.T) {
 		".bashrc",
 		`eval "$(`,
 		`command "/usr/local/bin/awss" select "$@"`,
+		`""|init|list|login|`,
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("bash output missing %q", want)
@@ -51,6 +52,7 @@ func TestRenderInit_Fish(t *testing.T) {
 		"config.fish",
 		"--shell fish",
 		"init fish | source",
+		"case '' init list login",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("fish output missing %q", want)

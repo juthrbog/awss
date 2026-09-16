@@ -53,7 +53,7 @@ const posixTmpl = `# awss shell integration
 
 awss() {
   case "$1" in
-    ""|init|list|--help|-h)
+    ""|init|list|login|help|completion|--help|-h)
       command "{{.BinaryPath}}" "$@"
       return $?
       ;;
@@ -74,7 +74,7 @@ const fishTmpl = `# awss shell integration
 
 function awss
   switch "$argv[1]"
-    case '' init list --help -h
+    case '' init list login help completion --help -h
       command "{{.BinaryPath}}" $argv
       return $status
   end
