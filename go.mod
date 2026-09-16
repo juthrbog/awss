@@ -1,6 +1,6 @@
 module github.com/juthrbog/awss
 
-go 1.26.1
+go 1.27.1
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.47.0
@@ -19,6 +19,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.3 // indirect
 	github.com/aws/smithy-go v1.28.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/spf13/pflag v1.0.9 // indirect
-	golang.org/x/sys v0.1.0 // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 )
