@@ -68,7 +68,7 @@ awss() {
     case "$arg" in
       --) literal=1 ;;
       --config-file|--credentials-file|--shell) skip_value=1 ;;
-      --current|--current=*|--help|--help=*)
+      --current|--current=*|--help|--help=*|--version|--version=*)
         command "{{.BinaryPath}}" "$@"
         return $?
         ;;
@@ -78,7 +78,7 @@ awss() {
         switching=1
         short_flags=${arg%%=*}
         case "$short_flags" in
-          *[ch]*)
+          *[chv]*)
             command "{{.BinaryPath}}" "$@"
             return $?
             ;;
@@ -134,7 +134,7 @@ function awss
         set literal 1
       case --config-file --credentials-file --shell
         set skip_value 1
-      case --current '--current=*' --help '--help=*'
+      case --current '--current=*' --help '--help=*' --version '--version=*'
         command "{{.BinaryPath}}" $argv
         return $status
       case --region '--region=*'
@@ -143,7 +143,7 @@ function awss
       case '-*'
         set switching 1
         set -l short_flags (string split -m1 = -- "$arg")[1]
-        if string match -qr '[ch]' -- "$short_flags"
+        if string match -qr '[chv]' -- "$short_flags"
           command "{{.BinaryPath}}" $argv
           return $status
         end

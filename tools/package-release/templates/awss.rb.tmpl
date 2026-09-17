@@ -1,0 +1,51 @@
+# Generated from the release's SHA-256 checksums. Do not edit manually.
+class Awss < Formula
+  desc "Interactive AWS profile and region switcher"
+  homepage "https://github.com/juthrbog/awss"
+  version "{{ .Version }}"
+  license "Apache-2.0"
+
+  on_macos do
+    on_arm do
+      url "https://github.com/juthrbog/awss/releases/download/{{ .Tag }}/awss_{{ .Version }}_darwin_arm64.tar.gz"
+      sha256 "{{ index .Checksums "darwin_arm64" }}"
+    end
+    on_intel do
+      url "https://github.com/juthrbog/awss/releases/download/{{ .Tag }}/awss_{{ .Version }}_darwin_amd64.tar.gz"
+      sha256 "{{ index .Checksums "darwin_amd64" }}"
+    end
+  end
+
+  on_linux do
+    on_arm do
+      url "https://github.com/juthrbog/awss/releases/download/{{ .Tag }}/awss_{{ .Version }}_linux_arm64.tar.gz"
+      sha256 "{{ index .Checksums "linux_arm64" }}"
+    end
+    on_intel do
+      url "https://github.com/juthrbog/awss/releases/download/{{ .Tag }}/awss_{{ .Version }}_linux_amd64.tar.gz"
+      sha256 "{{ index .Checksums "linux_amd64" }}"
+    end
+  end
+
+  def install
+    bin.install "awss"
+    bash_completion.install "completions/awss.bash" => "awss"
+    zsh_completion.install "completions/_awss"
+    fish_completion.install "completions/awss.fish"
+  end
+
+  def caveats
+    <<~EOS
+      Enable shell integration to change your current shell:
+        Bash: eval "$(awss init bash)"
+        Zsh:  eval "$(awss init zsh)"
+        Fish: awss init fish | source
+    EOS
+  end
+
+  test do
+    assert_match version.to_s, shell_output("#{bin}/awss --version")
+    (testpath/"config").write("[profile testing]\nregion = us-east-1\n")
+    assert_equal "testing\n", shell_output("#{bin}/awss list --config-file #{testpath}/config --credentials-file #{testpath}/missing")
+  end
+end

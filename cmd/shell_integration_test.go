@@ -46,6 +46,8 @@ func TestShellQualityOfLife(t *testing.T) {
 				t.Fatal(err)
 			}
 			script := wrapper + `
+awss --version >/dev/null
+awss -v >/dev/null
 awss production
 awss -c
 awss -r eu-west-1
@@ -76,7 +78,10 @@ complete -C 'awss pr'
 `
 			}
 			if shell == "bash" {
-				script += `source <(awss completion bash)
+				// macOS Bash 3.2 cannot reliably source process substitutions.
+				t.Setenv("AWSS_TEST_COMPLETION_FILE", filepath.Join(t.TempDir(), "completion.bash"))
+				script += `awss completion bash > "$AWSS_TEST_COMPLETION_FILE" || exit 1
+source "$AWSS_TEST_COMPLETION_FILE" || exit 1
 # The full completion engine requires bash-completion; verify registration
 # here, and the dynamic completion protocol above, without that dependency.
 case "$(complete -p awss)" in
@@ -87,7 +92,8 @@ esac
 			}
 			if shell == "zsh" {
 				script += `autoload -Uz compinit
-compinit -D
+# Exclude insecure host completion paths without prompting in this non-TTY test.
+compinit -D -i || exit 1
 source <(awss completion zsh)
 print -r -- "${_comps[awss]}"
 `

@@ -1,2 +1,6 @@
 # Binary
 awss
+
+# GoReleaser artifacts and generated package recipes
+/dist/
+/.generated/

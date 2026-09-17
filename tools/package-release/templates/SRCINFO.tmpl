@@ -1,0 +1,13 @@
+pkgbase = awss
+	pkgdesc = Interactive AWS profile and region switcher
+	pkgver = {{ .PackageVersion }}
+	pkgrel = 1
+	url = https://github.com/juthrbog/awss
+	arch = x86_64
+	arch = aarch64
+	license = Apache-2.0
+	makedepends = go>=1.27.1
+	source = awss-{{ .Version }}.tar.gz::https://github.com/juthrbog/awss/releases/download/{{ .Tag }}/awss_{{ .Version }}_source.tar.gz
+	sha256sums = {{ index .Checksums "source" }}
+
+pkgname = awss

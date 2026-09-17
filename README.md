@@ -169,9 +169,104 @@ Functions: `trimPrefix "p"` strips a prefix, `replace "a" "b"` replaces all occu
 
 ## Install
 
+**Distribution status:** the public Homebrew tap and publishing credential are
+configured. Binary downloads and the initial Homebrew formula still require the
+release workflow to be merged and a stable version tagged. AUR submission remains
+manual; see [the release guide](docs/releasing.md). Until packages are published,
+use Go installation or a local build.
+
+### Go install / local build
+
+Requires **Go 1.27.1 or newer**:
+
 ```bash
 go install github.com/juthrbog/awss@latest
+# Or, from a local checkout:
+go install .
 ```
+
+Ensure `$(go env GOBIN)` is on your `PATH`, or `$(go env GOPATH)/bin` if `GOBIN`
+is unset. Check the installed build with `awss --version`.
+
+### Homebrew (macOS and Linux)
+
+After the first stable release has been published to the tap:
+
+```bash
+brew install juthrbog/tap/awss
+```
+
+The formula installs the binary and bash/zsh/fish completions for Intel/amd64
+and ARM64. Shell integration still needs to be enabled below.
+
+### Arch Linux / AUR
+
+After the `awss` AUR package has been submitted:
+
+```bash
+yay -S awss
+```
+
+Alternatively, download the release's `PKGBUILD`, `.SRCINFO`, `awss.rb`, and
+`packaging_checksums.txt` from the [Releases page](https://github.com/juthrbog/awss/releases).
+Review the recipe, verify `sha256sum -c packaging_checksums.txt`, and run
+`makepkg -si` as a regular user. It builds from a checksummed source archive and
+installs the binary and completions. See [AUR release steps](docs/releasing.md#one-time-aur-setup-and-updates).
+
+### Binary downloads
+
+Download your archive and `checksums.txt` from the
+[Releases page](https://github.com/juthrbog/awss/releases). Assets are named
+`awss_<version>_<os>_<arch>.tar.gz` (`.zip` for Windows):
+
+| OS | Architectures |
+|---|---|
+| `linux` | `amd64`, `arm64` |
+| `darwin` (macOS) | `amd64` (Intel), `arm64` (Apple Silicon) |
+| `windows` | `amd64`, `arm64` |
+
+For example, on Linux (replace the version and architecture with your download):
+
+```bash
+archive=awss_0.1.0_linux_amd64.tar.gz
+# Compare the downloaded archive against its entry in the checksum manifest.
+grep "  ${archive}$" checksums.txt | sha256sum -c -
+mkdir -p awss-download
+tar -xzf "$archive" -C awss-download
+mkdir -p "$HOME/.local/bin"
+install -m 755 awss-download/awss "$HOME/.local/bin/awss"
+```
+
+On macOS use `shasum -a 256 -c -` instead of `sha256sum -c -`. Add
+`$HOME/.local/bin` to your `PATH`. Keep the included `completions/` files if you
+want to install them manually, or generate them using [Shell completions](#shell-completions).
+
+On Windows, compare `(Get-FileHash .\\awss_<version>_windows_amd64.zip -Algorithm SHA256).Hash`
+with the matching entry in `checksums.txt`, extract the ZIP, and add the directory
+containing `awss.exe` to your user `PATH`. The Windows binary supports commands
+such as listing and SSO login, but **PowerShell/CMD shell integration is not
+implemented**. Use the Linux binary inside WSL for integrated profile switching.
+
+### Enable shell integration
+
+Installation alone cannot change your parent shell. Add the appropriate line to
+your shell's startup file:
+
+```bash
+# ~/.bashrc
+eval "$(awss init bash)"
+# ~/.zshrc
+eval "$(awss init zsh)"
+```
+
+```fish
+# ~/.config/fish/config.fish
+awss init fish | source
+```
+
+Start a new shell (or evaluate the corresponding line now), then run `awss`.
+After upgrading, reload shell integration so it uses the new binary. Configure
+AWS profiles first, or use the [local test fixtures](#development).
 
 ## Development
 
