@@ -82,6 +82,10 @@ Functions:
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		files, err := resolveAWSFiles(cmd)
+		if err != nil {
+			return err
+		}
 		s, err := settings.Load(settings.Path())
 		if err != nil {
 			return err
@@ -102,11 +106,13 @@ Functions:
 		loader.DisableBrowserLaunch = loginOpts.noBrowser
 
 		if err := loader.Login(cmd.Context(), sso.LoginOptions{
-			Accounts:     loginOpts.accounts,
-			Roles:        loginOpts.roles,
-			NameTemplate: template,
-			WithSTS:      loginOpts.sts,
-			Force:        loginOpts.force,
+			ConfigPath:      files.configPath,
+			CredentialsPath: files.credentialsPath,
+			Accounts:        loginOpts.accounts,
+			Roles:           loginOpts.roles,
+			NameTemplate:    template,
+			WithSTS:         loginOpts.sts,
+			Force:           loginOpts.force,
 		}); err != nil {
 			return err
 		}

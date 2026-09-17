@@ -1,15 +1,10 @@
 package sso
 
-import (
-	"gopkg.in/ini.v1"
-
-	"github.com/juthrbog/awss/internal/config"
-)
+import "gopkg.in/ini.v1"
 
 // updateConfigFile writes profiles into the AWS config file, removing managed
 // sections for the same start URL that no longer correspond to a role.
-func updateConfigFile(profiles []Profile) error {
-	path := config.DefaultConfigPath()
+func updateConfigFile(path string, profiles []Profile) error {
 	f, err := loadINI(path)
 	if err != nil {
 		return err

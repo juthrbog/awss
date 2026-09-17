@@ -25,6 +25,7 @@ func profileFixture(t *testing.T) {
 	t.Setenv("AWS_CONFIG_FILE", configPath)
 	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", credentialsPath)
 	t.Setenv("AWS_PROFILE", "default")
+	t.Setenv("XDG_CACHE_HOME", filepath.Join(dir, "cache"))
 }
 
 func TestDefaultNonTTY(t *testing.T) {
@@ -34,7 +35,7 @@ func TestDefaultNonTTY(t *testing.T) {
 		t.Fatal("non-TTY input must not start the picker")
 		return "", nil
 	}
-	if err := runDefault(&out, io.Discard, "", false, choose); err != nil {
+	if err := defaultAWSFiles().runDefault(&out, io.Discard, "", false, choose); err != nil {
 		t.Fatal(err)
 	}
 	if got, want := out.String(), "credentials-only\ndefault\nproduction\nstaging\n"; got != want {
@@ -61,7 +62,7 @@ func TestDefaultSelection(t *testing.T) {
 				}
 				return tc.name, nil
 			}
-			if err := runDefault(&out, io.Discard, tc.shell, true, choose); err != nil {
+			if err := defaultAWSFiles().runDefault(&out, io.Discard, tc.shell, true, choose); err != nil {
 				t.Fatal(err)
 			}
 			if out.String() != tc.want {
@@ -75,7 +76,7 @@ func TestDefaultPickerError(t *testing.T) {
 	profileFixture(t)
 	var out bytes.Buffer
 	want := errors.New("terminal failed")
-	err := runDefault(&out, io.Discard, "", true, func([]string, string) (string, error) { return "", want })
+	err := defaultAWSFiles().runDefault(&out, io.Discard, "", true, func([]string, string) (string, error) { return "", want })
 	if !errors.Is(err, want) || out.Len() != 0 {
 		t.Fatalf("error = %v, stdout = %q", err, out.String())
 	}
@@ -86,7 +87,7 @@ func TestDefaultMissingProfiles(t *testing.T) {
 	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", filepath.Join(t.TempDir(), "missing"))
 	for _, interactive := range []bool{false, true} {
 		var out, diagnostic bytes.Buffer
-		if err := runDefault(&out, &diagnostic, "", interactive, nil); err != nil || out.Len() != 0 {
+		if err := defaultAWSFiles().runDefault(&out, &diagnostic, "", interactive, nil); err != nil || out.Len() != 0 {
 			t.Fatalf("error = %v, stdout = %q", err, out.String())
 		}
 		if interactive {
@@ -105,7 +106,7 @@ func TestDefaultConfigError(t *testing.T) {
 	profileFixture(t)
 	t.Setenv("AWS_CONFIG_FILE", t.TempDir()) // Cannot read a directory as an INI file.
 	var out bytes.Buffer
-	if err := runDefault(&out, io.Discard, "", true, nil); err == nil || out.Len() != 0 {
+	if err := defaultAWSFiles().runDefault(&out, io.Discard, "", true, nil); err == nil || out.Len() != 0 {
 		t.Fatalf("error = %v, stdout = %q", err, out.String())
 	}
 }

@@ -1,4 +1,4 @@
-// Package picker provides the interactive, fuzzy-filterable profile picker.
+// Package picker provides interactive, fuzzy-filterable profile and region pickers.
 package picker
 
 import (
@@ -28,12 +28,13 @@ func (i item) Title() string {
 
 type model struct {
 	list     list.Model
+	kind     string
 	filter   textinput.Model
 	selected string
 	done     bool
 }
 
-func newModel(names []string, current string) model {
+func newModel(names []string, current, kind string) model {
 	items := make([]list.Item, len(names))
 	currentIndex := 0
 	for n, name := range names {
@@ -50,7 +51,7 @@ func newModel(names []string, current string) model {
 	l.SetShowTitle(false)
 	l.SetShowFilter(false)
 	l.SetShowHelp(false)
-	l.SetStatusBarItemName("profile", "profiles")
+	l.SetStatusBarItemName(kind, kind+"s")
 	l.Select(currentIndex)
 
 	filter := textinput.New()
@@ -58,7 +59,7 @@ func newModel(names []string, current string) model {
 	filter.Placeholder = "Type to filter…"
 	filter.SetWidth(70)
 	filter.Focus()
-	return model{list: l, filter: filter}
+	return model{list: l, filter: filter, kind: kind}
 }
 
 func (m model) Init() tea.Cmd { return textinput.Blink }
@@ -110,7 +111,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() tea.View {
 	content := ""
 	if !m.done {
-		title := lipgloss.NewStyle().Bold(true).Render("AWS profiles")
+		title := lipgloss.NewStyle().Bold(true).Render("AWS " + m.kind + "s")
 		help := lipgloss.NewStyle().Faint(true).Render("↑/↓ navigate • enter select • esc/ctrl+c cancel")
 		content = title + "\n" + m.filter.View() + "\n" + m.list.View() + "\n" + help
 	}
@@ -119,15 +120,15 @@ func (m model) View() tea.View {
 	return view
 }
 
-// Run returns the selected profile, or an empty string on cancellation. UI output
+// Run returns the selected item, or an empty string on cancellation. UI output
 // is kept separate from the export statements written by the caller.
-func Run(names []string, current string, input *os.File, output io.Writer) (string, error) {
+func Run(names []string, current, kind string, input *os.File, output io.Writer) (string, error) {
 	if len(names) == 0 {
 		return "", nil
 	}
-	result, err := tea.NewProgram(newModel(names, current), tea.WithInput(input), tea.WithOutput(output)).Run()
+	result, err := tea.NewProgram(newModel(names, current, kind), tea.WithInput(input), tea.WithOutput(output)).Run()
 	if err != nil {
-		return "", fmt.Errorf("running profile picker: %w", err)
+		return "", fmt.Errorf("running %s picker: %w", kind, err)
 	}
 	return result.(model).selected, nil
 }

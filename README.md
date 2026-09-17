@@ -2,7 +2,7 @@
 
 A fast, interactive AWS profile and region switcher. Like [kubectx](https://github.com/ahmetb/kubectx) for AWS.
 
-> **Status:** Early development. Interactive profile picking, listing, switching, shell integration, and SSO login work.
+> **Status:** Early development. Profile and region picking, previous-profile switching, shell completions, and SSO login work.
 
 ## Usage
 
@@ -11,9 +11,10 @@ awss                   # fuzzy profile picker (requires shell integration to swi
 awss list              # list all profiles
 awss <name>            # switch to named profile (requires shell integration)
 awss login             # log in to IAM Identity Center and generate profiles
-awss -                 # switch to previous profile (coming soon)
-awss -c                # print current profile and region (coming soon)
-awss -r                # interactive region picker (coming soon)
+awss -                 # switch to previous profile
+awss -c                # print current profile and region (--current)
+awss -r                # interactive region picker (--region)
+awss -r eu-west-1      # switch region directly
 ```
 
 With terminal input, `awss` opens a fuzzy-filterable picker. Type to filter, use
@@ -42,6 +43,84 @@ eval "$(awss init zsh)"
 # Fish — add to ~/.config/fish/config.fish:
 awss init fish | source
 ```
+
+## Custom AWS file paths
+
+Use `--config-file` and `--credentials-file` to choose AWS files without setting
+environment variables first:
+
+```bash
+awss --config-file ./testdata/aws/config --credentials-file ./testdata/aws/credentials
+awss list --config-file /path/to/config --credentials-file /path/to/credentials
+awss production --config-file /path/to/config --credentials-file /path/to/credentials
+```
+
+Each file is resolved independently: **flag → AWS environment variable → default**.
+The defaults are `~/.aws/config` and `~/.aws/credentials`; the environment variables
+are `AWS_CONFIG_FILE` and `AWS_SHARED_CREDENTIALS_FILE`, respectively.
+
+The flags work with the picker, listing, selection, profile completion, and SSO
+login, and may appear before or after a subcommand. Listing and completion do not
+change your environment. When you select a profile, shell integration also sets
+the explicitly supplied file paths in your shell, so subsequent AWS CLI/SDK calls
+use the same files. Relative flag paths are exported as absolute paths. Cancelling
+the picker changes nothing.
+
+Specifying a path does not copy or overwrite files. `awss login` still writes
+profiles and updates managed credentials, but uses the selected paths instead of
+the defaults. `--config-file` refers to the AWS INI file, **not** awss's own
+`config.yaml` (which is controlled by `AWSS_CONFIG`).
+
+## Previous profile and current state
+
+`awss -` returns to the previously active profile; repeat it to toggle between
+two profiles. Both named and interactive profile switches record the current
+`AWS_PROFILE` before switching. History is shared across shell sessions in
+`$XDG_CACHE_HOME/awss/previous` (default `~/.cache/awss/previous`). Selecting the
+same profile, cancelling a picker, or switching regions leaves history alone.
+If `AWS_PROFILE` is unset, there is no current profile to save.
+
+Returning to a profile uses its configured region, not a previous manual region
+override. Missing history or a deleted profile produces an error without changing
+your shell.
+
+`awss -c` / `awss --current` prints `AWS_PROFILE (AWS_REGION)` from the current
+environment. Missing values appear as `<unset>`; it does not infer profile defaults.
+
+## Region switching
+
+`awss -r` / `awss --region` opens the same fuzzy picker for AWS regions and marks
+the current `AWS_REGION`. Use `awss -r eu-west-1` (or `--region=eu-west-1`) to
+switch directly, including with non-terminal input. The interactive form requires
+a terminal. Selection only changes `AWS_REGION`, leaving `AWS_PROFILE` and
+previous-profile history intact.
+
+The region list is built in and includes commercial, China, GovCloud, and European
+Sovereign Cloud regions. No AWS API call is needed, and selecting a region does
+not enable it in your account.
+
+## Shell completions
+
+After loading shell integration, enable completion in your shell's startup file:
+
+```bash
+# Bash (~/.bashrc): install and load bash-completion first.
+source <(awss completion bash)
+
+# Zsh (~/.zshrc): run compinit first, unless your shell framework already does.
+autoload -Uz compinit
+compinit
+source <(awss completion zsh)
+```
+
+```fish
+# Fish (~/.config/fish/config.fish):
+awss completion fish | source
+```
+
+`awss <TAB>` and `awss select <TAB>` complete profile names from your AWS files;
+`awss -r <TAB>` completes regions. Completion does not change your shell or history.
+After upgrading, reload both shell integration and completions (or start a new shell).
 
 ## SSO login
 
@@ -96,12 +175,48 @@ go install github.com/juthrbog/awss@latest
 
 ## Development
 
+Reusable fake AWS files live in [`testdata/aws/config`](testdata/aws/config) and
+[`testdata/aws/credentials`](testdata/aws/credentials). Both contain multiple
+profiles with deliberately invalid `FAKE_KEY_*` / `FAKE_SECRET_*` credentials.
+They are for local listing, picking, switching, and completion tests—not AWS API
+calls or SSO authentication. Never put real credentials in these files.
+
+| Profile | Region | Test case |
+|---|---|---|
+| `default` | `us-west-2` | Present in both files |
+| `production` | `us-east-1` | Switch to a different region; present in both files |
+| `staging` | None | Clears `AWS_REGION`; present in both files |
+| `dev-only` | `ap-northeast-1` | Credentials-only profile and region fallback |
+| `dev-sso` | `eu-west-1` | Config-only SSO profile; session block is not a profile |
+| `cross-account` | `ap-southeast-1` | Config-only assume-role profile |
+
+For a quick picker test with no environment-variable setup:
+
 ```bash
-eval "$(./scripts/dev-env.sh)"           # create fixture AWS config and activate
-go run . list                             # verify profiles
-go run . select production                # test switching
-eval "$(./scripts/dev-env.sh teardown)"   # deactivate and clean up
+go run . --config-file ./testdata/aws/config --credentials-file ./testdata/aws/credentials
 ```
+
+Or use the helper to copy these into a temporary directory and set
+`AWS_CONFIG_FILE` / `AWS_SHARED_CREDENTIALS_FILE` without touching `~/.aws`:
+
+```bash
+# Bash or zsh, from the repository root:
+eval "$(./scripts/dev-env.sh)"
+go run . list
+go run . select production                # prints exports; does not apply them
+go run .                                 # test the picker
+# With shell integration loaded, use awss / awss production / awss - instead.
+eval "$(./scripts/dev-env.sh teardown)"    # unset file overrides and remove copies
+```
+
+You can also point those two environment variables directly at the fixture files,
+but use temporary copies for commands that write to AWS files. The helper only
+manages the file overrides; it does not restore an earlier profile, region, or
+previous-profile history after testing.
+
+The Go tests validate fixture discovery, regions, and exact fake credential
+values. Gitleaks and Trivy secret scanning remain enabled for these files; no
+fixture-wide secret-scanner exclusion is needed.
 
 ## License
 

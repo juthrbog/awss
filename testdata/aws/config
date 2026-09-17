@@ -1,0 +1,33 @@
+# LOCAL TEST FIXTURE ONLY. All credentials are intentionally invalid.
+# Do not replace these placeholders with real AWS credentials.
+
+[default]
+region = us-west-2
+aws_access_key_id = FAKE_KEY_DEFAULT
+aws_secret_access_key = FAKE_SECRET_DEFAULT
+
+[profile production]
+region = us-east-1
+output = json
+aws_access_key_id = FAKE_KEY_PRODUCTION
+aws_secret_access_key = FAKE_SECRET_PRODUCTION
+
+# No region: selecting this profile should clear AWS_REGION.
+[profile staging]
+aws_access_key_id = FAKE_KEY_STAGING
+aws_secret_access_key = FAKE_SECRET_STAGING
+
+[profile dev-sso]
+sso_session = local-test
+sso_account_id = 111122223333
+sso_role_name = ReadOnly
+region = eu-west-1
+
+[profile cross-account]
+role_arn = arn:aws:iam::123456789012:role/CrossAccountAdmin
+source_profile = production
+region = ap-southeast-1
+
+[sso-session local-test]
+sso_start_url = https://sso.example.invalid/start
+sso_region = us-east-1
