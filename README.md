@@ -2,11 +2,12 @@
 
 A fast, interactive AWS profile and region switcher. Like [kubectx](https://github.com/ahmetb/kubectx) for AWS.
 
-> **Status:** Early development. Profile listing, switching, shell integration, and SSO login work. Interactive picker coming soon.
+> **Status:** Early development. Interactive profile picking, listing, switching, shell integration, and SSO login work.
 
 ## Usage
 
 ```bash
+awss                   # fuzzy profile picker (requires shell integration to switch)
 awss list              # list all profiles
 awss <name>            # switch to named profile (requires shell integration)
 awss login             # log in to IAM Identity Center and generate profiles
@@ -14,6 +15,18 @@ awss -                 # switch to previous profile (coming soon)
 awss -c                # print current profile and region (coming soon)
 awss -r                # interactive region picker (coming soon)
 ```
+
+With terminal input, `awss` opens a fuzzy-filterable picker. Type to filter, use
+↑/↓ to navigate, and Enter to select. The active `AWS_PROFILE` is marked
+`(current)` and selected initially. Esc or Ctrl+C cancels without changing your
+shell. With no profiles configured, the interactive command prints setup guidance
+to stderr and leaves your shell unchanged.
+
+With non-terminal input (for example, `awss < /dev/null`), bare `awss` lists
+profiles as plain text. Use `awss list` to force listing even in a terminal.
+Without shell integration, selecting a profile prints export statements rather
+than changing your shell; the picker UI goes to stderr, keeping stdout safe for
+`eval`.
 
 ## How it works
 
