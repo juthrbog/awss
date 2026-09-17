@@ -11,10 +11,16 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ssooidc"
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/pkg/browser"
+
+	"github.com/juthrbog/awss/internal/config"
 )
 
 // LoginOptions controls what Login writes.
 type LoginOptions struct {
+	// ConfigPath and CredentialsPath override AWS output files. Empty values
+	// use the standard environment variables and ~/.aws defaults.
+	ConfigPath      string
+	CredentialsPath string
 	// Accounts limits generated profiles to these account names. Empty means all.
 	Accounts []string
 	// Roles limits generated profiles to these role names. Empty means all.
@@ -70,13 +76,20 @@ func (loader Loader) configureProfiles(ctx context.Context, accessToken string, 
 	if err != nil {
 		return err
 	}
-	if err := updateConfigFile(profiles); err != nil {
+	configPath, credentialsPath := opts.ConfigPath, opts.CredentialsPath
+	if configPath == "" {
+		configPath = config.DefaultConfigPath()
+	}
+	if credentialsPath == "" {
+		credentialsPath = config.DefaultCredentialsPath()
+	}
+	if err := updateConfigFile(configPath, profiles); err != nil {
 		return err
 	}
 	if opts.WithSTS {
-		return loader.updateSTSCredentials(ctx, accessToken, profiles)
+		return loader.updateSTSCredentials(ctx, accessToken, profiles, credentialsPath)
 	}
-	return clearSTSCredentials(loader.StartURL)
+	return clearSTSCredentials(credentialsPath, loader.StartURL)
 }
 
 // browserLogin runs the OIDC device authorization flow and caches the

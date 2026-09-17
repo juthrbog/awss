@@ -19,10 +19,11 @@ func TestRenderInit_Bash(t *testing.T) {
 		"/usr/local/bin/awss",
 		".bashrc",
 		`eval "$(`,
-		`command "/usr/local/bin/awss" select "$@"`,
+		`command "/usr/local/bin/awss" "$@"`,
 		`init|list|login|`,
-		`if [ ! -t 0 ]; then`,
-		`output=$(command "/usr/local/bin/awss")`,
+		`[ ! -t 0 ]`,
+		`output=$(command "/usr/local/bin/awss" "$@")`,
+		`__complete|__completeNoDesc`,
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("bash output missing %q", want)
@@ -59,8 +60,9 @@ func TestRenderInit_Fish(t *testing.T) {
 		"--shell fish",
 		"init fish | source",
 		"case init list login",
-		"if not test -t 0",
-		`set output (command "/usr/local/bin/awss" --shell fish)`,
+		"and not test -t 0",
+		`set -l output (command "/usr/local/bin/awss" --shell fish $argv)`,
+		`__complete __completeNoDesc`,
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("fish output missing %q", want)
@@ -84,8 +86,7 @@ func TestShellWrapperNonTTY(t *testing.T) {
 			binary := filepath.Join(dir, "mock-awss")
 			// The no-argument output would change AWS_PROFILE if evaluated.
 			mock := `#!/bin/sh
-if [ "$1" = select ]; then
-  shift
+if [ "$#" -ne 0 ]; then
   if [ "$1" = --shell ]; then
     shift 2
     [ "$1" = broken ] && exit 7

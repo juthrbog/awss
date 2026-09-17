@@ -3,36 +3,55 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/juthrbog/awss/internal/config"
+	"github.com/juthrbog/awss/internal/state"
 	"github.com/spf13/cobra"
 )
 
-var shellFlag string
-
-func init() {
-	selectCmd.Flags().StringVar(&shellFlag, "shell", "", "output syntax: bash, zsh, or fish (default bash)")
-	rootCmd.AddCommand(selectCmd)
+func newSelectCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:               "select <profile>",
+		Short:             "Output export statements for a profile",
+		Long:              "Print export statements that set AWS_PROFILE (and optionally AWS_REGION) for the given profile. Intended for use with eval.",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completeProfiles,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			shell, err := cmd.Flags().GetString("shell")
+			if err != nil {
+				return err
+			}
+			files, err := resolveAWSFiles(cmd)
+			if err != nil {
+				return err
+			}
+			return files.writeProfileExports(cmd.OutOrStdout(), args[0], shell)
+		},
+	}
 }
 
-var selectCmd = &cobra.Command{
-	Use:   "select <profile>",
-	Short: "Output export statements for a profile",
-	Long:  "Print export statements that set AWS_PROFILE (and optionally AWS_REGION) for the given profile. Intended for use with eval.",
-	Args:  cobra.ExactArgs(1),
-	// Cobra prints RunE errors to stderr automatically, keeping stdout clean.
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return writeProfileExports(cmd.OutOrStdout(), args[0], shellFlag)
-	},
-}
-
-func writeProfileExports(out io.Writer, name, shell string) error {
-	profile, err := config.LoadProfile(config.DefaultConfigPath(), config.DefaultCredentialsPath(), name)
+func (files awsFiles) writeProfileExports(out io.Writer, name, shell string) error {
+	if err := validateShell(shell); err != nil {
+		return err
+	}
+	if name == "-" {
+		previous, err := state.Previous()
+		if err != nil {
+			return err
+		}
+		name = previous
+	}
+	profile, err := config.LoadProfile(files.configPath, files.credentialsPath, name)
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprint(out, formatExports(profile, shell))
+	// Validate the destination before touching history or emitting shell code.
+	if err := state.SavePrevious(os.Getenv("AWS_PROFILE"), name); err != nil {
+		return err
+	}
+	_, err = fmt.Fprint(out, files.exports(shell)+formatExports(profile, shell))
 	return err
 }
 
@@ -43,20 +62,12 @@ func writeProfileExports(out io.Writer, name, shell string) error {
 // When shell is "fish", outputs fish-compatible set/set -e syntax.
 func formatExports(p config.Profile, shell string) string {
 	var b strings.Builder
+	p.Name = quoteShellValue(p.Name, shell)
 	if shell == "fish" {
 		fmt.Fprintf(&b, "set -gx AWS_PROFILE %s\n", p.Name)
-		if p.Region != "" {
-			fmt.Fprintf(&b, "set -gx AWS_REGION %s\n", p.Region)
-		} else {
-			b.WriteString("set -e AWS_REGION\n")
-		}
 	} else {
 		fmt.Fprintf(&b, "export AWS_PROFILE=%s\n", p.Name)
-		if p.Region != "" {
-			fmt.Fprintf(&b, "export AWS_REGION=%s\n", p.Region)
-		} else {
-			b.WriteString("unset AWS_REGION\n")
-		}
 	}
+	b.WriteString(formatRegionExport(p.Region, shell))
 	return b.String()
 }

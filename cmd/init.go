@@ -52,25 +52,58 @@ const posixTmpl = `# awss shell integration
 #   eval "$({{.BinaryPath}} init {{.Shell}})"
 
 awss() {
-  local output exit_code
-  if [ "$#" -eq 0 ]; then
-    # Piped input produces a plain list, which must never be evaluated.
-    if [ ! -t 0 ]; then
-      command "{{.BinaryPath}}"
-      return $?
+  local output exit_code arg short_flags
+  local switching=0 skip_value=0 operand=0 literal=0
+  # Account for file flags before subcommands and options-only invocations.
+  # Human-readable output and Cobra completion responses must never be eval'd.
+  for arg in "$@"; do
+    if [ "$skip_value" -eq 1 ]; then
+      skip_value=0
+      continue
     fi
-    output=$(command "{{.BinaryPath}}")
-    exit_code=$?
-  else
-    case "$1" in
-      init|list|login|help|completion|--help|-h)
+    if [ "$literal" -eq 1 ]; then
+      switching=1
+      continue
+    fi
+    case "$arg" in
+      --) literal=1 ;;
+      --config-file|--credentials-file|--shell) skip_value=1 ;;
+      --current|--current=*|--help|--help=*)
         command "{{.BinaryPath}}" "$@"
         return $?
         ;;
+      --region|--region=*) switching=1 ;;
+      --*) ;;
+      -*)
+        switching=1
+        short_flags=${arg%%=*}
+        case "$short_flags" in
+          *[ch]*)
+            command "{{.BinaryPath}}" "$@"
+            return $?
+            ;;
+        esac
+        ;;
+      *)
+        if [ "$operand" -eq 0 ]; then
+          case "$arg" in
+            init|list|login|help|completion|__complete|__completeNoDesc)
+              command "{{.BinaryPath}}" "$@"
+              return $?
+              ;;
+          esac
+          operand=1
+        fi
+        switching=1
+        ;;
     esac
-    output=$(command "{{.BinaryPath}}" select "$@")
-    exit_code=$?
+  done
+  if [ "$switching" -eq 0 ] && [ ! -t 0 ]; then
+    command "{{.BinaryPath}}" "$@"
+    return $?
   fi
+  output=$(command "{{.BinaryPath}}" "$@")
+  exit_code=$?
   if [ $exit_code -eq 0 ]; then
     eval "$output"
   fi
@@ -83,25 +116,55 @@ const fishTmpl = `# awss shell integration
 #   {{.BinaryPath}} init fish | source
 
 function awss
-  set -l output
-  set -l cmd_status
-  if test (count $argv) -eq 0
-    # Piped input produces a plain list, which must never be evaluated.
-    if not test -t 0
-      command "{{.BinaryPath}}"
-      return $status
+  set -l switching 0
+  set -l skip_value 0
+  set -l operand 0
+  set -l literal 0
+  for arg in $argv
+    if test $skip_value -eq 1
+      set skip_value 0
+      continue
     end
-    set output (command "{{.BinaryPath}}" --shell fish)
-    set cmd_status $status
-  else
-    switch "$argv[1]"
-      case init list login help completion --help -h
+    if test $literal -eq 1
+      set switching 1
+      continue
+    end
+    switch "$arg"
+      case --
+        set literal 1
+      case --config-file --credentials-file --shell
+        set skip_value 1
+      case --current '--current=*' --help '--help=*'
         command "{{.BinaryPath}}" $argv
         return $status
+      case --region '--region=*'
+        set switching 1
+      case '--*'
+      case '-*'
+        set switching 1
+        set -l short_flags (string split -m1 = -- "$arg")[1]
+        if string match -qr '[ch]' -- "$short_flags"
+          command "{{.BinaryPath}}" $argv
+          return $status
+        end
+      case '*'
+        if test $operand -eq 0
+          switch "$arg"
+            case init list login help completion __complete __completeNoDesc
+              command "{{.BinaryPath}}" $argv
+              return $status
+          end
+          set operand 1
+        end
+        set switching 1
     end
-    set output (command "{{.BinaryPath}}" select --shell fish $argv)
-    set cmd_status $status
   end
+  if test $switching -eq 0; and not test -t 0
+    command "{{.BinaryPath}}" $argv
+    return $status
+  end
+  set -l output (command "{{.BinaryPath}}" --shell fish $argv)
+  set -l cmd_status $status
   if test $cmd_status -eq 0
     # Fish splits command substitutions into lines; preserve those separators.
     printf '%s\n' $output | source

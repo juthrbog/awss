@@ -22,7 +22,7 @@ func typeText(m model, text string) model {
 }
 
 func TestCurrentProfile(t *testing.T) {
-	m := newModel([]string{"default", "production", "staging"}, "production")
+	m := newModel([]string{"default", "production", "staging"}, "production", "profile")
 	if got := m.list.SelectedItem().(item).name; got != "production" {
 		t.Fatalf("initial selection = %q", got)
 	}
@@ -39,7 +39,7 @@ func TestCurrentProfile(t *testing.T) {
 }
 
 func TestFuzzyFilterAndSelect(t *testing.T) {
-	m := newModel([]string{"default", "production", "staging"}, "default")
+	m := newModel([]string{"default", "production", "staging"}, "default", "profile")
 	m = typeText(m, "pdn") // Non-contiguous match, not a substring.
 	if got := len(m.list.VisibleItems()); got != 1 {
 		t.Fatalf("visible items = %d, want 1", got)
@@ -51,7 +51,7 @@ func TestFuzzyFilterAndSelect(t *testing.T) {
 }
 
 func TestNavigateFilteredResults(t *testing.T) {
-	m := newModel([]string{"dev-admin", "dev-readonly", "production"}, "")
+	m := newModel([]string{"dev-admin", "dev-readonly", "production"}, "", "profile")
 	m = typeText(m, "dev")
 	m, _ = press(m, tea.KeyPressMsg{Code: tea.KeyDown})
 	if got := m.list.SelectedItem().(item).name; got != "dev-readonly" {
@@ -65,7 +65,7 @@ func TestNavigateFilteredResults(t *testing.T) {
 }
 
 func TestNoMatchesAndBackspace(t *testing.T) {
-	m := typeText(newModel([]string{"default"}, ""), "z")
+	m := typeText(newModel([]string{"default"}, "", "profile"), "z")
 	m, cmd := press(m, tea.KeyPressMsg{Code: tea.KeyEnter})
 	if m.done || m.selected != "" || cmd != nil {
 		t.Fatal("enter with no matches must not select or quit")
@@ -84,7 +84,7 @@ func TestCancel(t *testing.T) {
 	for _, key := range []tea.KeyPressMsg{{Code: tea.KeyEscape}, {Code: 'c', Mod: tea.ModCtrl}} {
 		for _, filter := range []string{"", "prod", "no-match"} {
 			t.Run(key.String()+"/"+filter, func(t *testing.T) {
-				m := typeText(newModel([]string{"production"}, "production"), filter)
+				m := typeText(newModel([]string{"production"}, "production", "profile"), filter)
 				m, cmd := press(m, key)
 				if m.selected != "" || !m.done || cmd == nil {
 					t.Fatal("cancel should quit without selecting")
@@ -95,7 +95,7 @@ func TestCancel(t *testing.T) {
 }
 
 func TestQFiltersRatherThanQuits(t *testing.T) {
-	m := typeText(newModel([]string{"qa", "production"}, ""), "q")
+	m := typeText(newModel([]string{"qa", "production"}, "", "profile"), "q")
 	if m.done || m.list.SelectedItem().(item).name != "qa" {
 		t.Fatal("q must filter, not quit")
 	}
@@ -108,7 +108,7 @@ func TestWindowSizes(t *testing.T) {
 	}
 	for _, size := range []tea.WindowSizeMsg{{Width: 80, Height: 24}, {Width: 120, Height: 40}, {Width: 60, Height: 15}} {
 		t.Run(fmt.Sprintf("%dx%d", size.Width, size.Height), func(t *testing.T) {
-			m := newModel(names, "")
+			m := newModel(names, "", "profile")
 			next, _ := m.Update(size)
 			view := next.(model).View()
 			if !view.AltScreen {
@@ -121,8 +121,20 @@ func TestWindowSizes(t *testing.T) {
 	}
 }
 
+func TestRegionModel(t *testing.T) {
+	m := newModel([]string{"eu-west-1", "us-east-1"}, "us-east-1", "region")
+	if view := m.View().Content; !strings.Contains(view, "AWS regions") || !strings.Contains(view, "us-east-1 (current)") {
+		t.Fatalf("region labels missing: %q", view)
+	}
+	m = typeText(m, "ew1")
+	m, _ = press(m, tea.KeyPressMsg{Code: tea.KeyEnter})
+	if m.selected != "eu-west-1" {
+		t.Fatalf("selected = %q", m.selected)
+	}
+}
+
 func TestRunEmpty(t *testing.T) {
-	selected, err := Run(nil, "", nil, nil)
+	selected, err := Run(nil, "", "profile", nil, nil)
 	if selected != "" || err != nil {
 		t.Fatalf("Run(empty) = %q, %v", selected, err)
 	}

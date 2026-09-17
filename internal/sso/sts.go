@@ -10,8 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sso"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/ini.v1"
-
-	"github.com/juthrbog/awss/internal/config"
 )
 
 // STSCredentials are short-lived credentials for one profile.
@@ -70,8 +68,7 @@ func stsCredentialsFromINISection(s *ini.Section) STSCredentials {
 
 // clearSTSCredentials drops expired managed credentials for startURL from the
 // AWS credentials file. Unexpired ones are left alone.
-func clearSTSCredentials(startURL string) error {
-	path := config.DefaultCredentialsPath()
+func clearSTSCredentials(path, startURL string) error {
 	f, err := loadINI(path)
 	if err != nil {
 		return err
@@ -84,8 +81,7 @@ func clearSTSCredentials(startURL string) error {
 
 // updateSTSCredentials fetches STS credentials for every profile and writes
 // them to the AWS credentials file.
-func (loader Loader) updateSTSCredentials(ctx context.Context, accessToken string, profiles []Profile) error {
-	path := config.DefaultCredentialsPath()
+func (loader Loader) updateSTSCredentials(ctx context.Context, accessToken string, profiles []Profile, path string) error {
 	f, err := loadINI(path)
 	if err != nil {
 		return err
