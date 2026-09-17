@@ -46,6 +46,8 @@ func TestShellQualityOfLife(t *testing.T) {
 				t.Fatal(err)
 			}
 			script := wrapper + `
+awss --version >/dev/null
+awss -v >/dev/null
 awss production
 awss -c
 awss -r eu-west-1

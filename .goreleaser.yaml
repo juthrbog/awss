@@ -1,0 +1,62 @@
+version: 2
+project_name: awss
+
+before:
+  hooks:
+    - bash scripts/completions.sh
+
+builds:
+  - id: awss
+    main: .
+    binary: awss
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X github.com/juthrbog/awss/cmd.version={{ .Version }}
+
+archives:
+  - id: awss
+    ids: [awss]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - README.md
+      - src: .generated/completions/*
+        dst: completions
+        strip_parent: true
+
+source:
+  enabled: true
+  name_template: "{{ .ProjectName }}_{{ .Version }}_source"
+  prefix_template: "{{ .ProjectName }}-{{ .Version }}/"
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ .Version }}-SNAPSHOT-{{ .ShortCommit }}"
+
+release:
+  github:
+    owner: juthrbog
+    name: awss
+  # The workflow attaches package recipes before making the release public.
+  draft: true
+  prerelease: auto
+
+changelog:
+  use: git

@@ -20,6 +20,7 @@ func newRootCommand() *cobra.Command {
 	var current bool
 	cmd := &cobra.Command{
 		Use:               "awss [profile|-]",
+		Version:           buildVersion(),
 		Short:             "AWS profile and region switcher",
 		Long:              "A fast, interactive AWS profile and region switcher. With no arguments, pick a profile interactively (or list profiles when stdin is not a terminal).",
 		Args:              cobra.MaximumNArgs(1),
