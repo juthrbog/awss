@@ -169,11 +169,9 @@ Functions: `trimPrefix "p"` strips a prefix, `replace "a" "b"` replaces all occu
 
 ## Install
 
-**Distribution status:** the public Homebrew tap and publishing credential are
-configured. Binary downloads and the initial Homebrew formula still require the
-release workflow to be merged and a stable version tagged. AUR submission remains
-manual; see [the release guide](docs/releasing.md). Until packages are published,
-use Go installation or a local build.
+**Distribution status:** [v0.1.0](https://github.com/juthrbog/awss/releases/tag/v0.1.0)
+is available as binary downloads and through Homebrew. AUR submission remains
+manual; see [the release guide](docs/releasing.md).
 
 ### Go install / local build
 
@@ -190,8 +188,6 @@ is unset. Check the installed build with `awss --version`.
 
 ### Homebrew (macOS and Linux)
 
-After the first stable release has been published to the tap:
-
 ```bash
 brew install juthrbog/tap/awss
 ```
@@ -207,7 +203,7 @@ After the `awss` AUR package has been submitted:
 yay -S awss
 ```
 
-Alternatively, download the release's `PKGBUILD`, `.SRCINFO`, `awss.rb`, and
+Alternatively, download the release's `PKGBUILD`, `SRCINFO`, `awss.rb`, and
 `packaging_checksums.txt` from the [Releases page](https://github.com/juthrbog/awss/releases).
 Review the recipe, verify `sha256sum -c packaging_checksums.txt`, and run
 `makepkg -si` as a regular user. It builds from a checksummed source archive and

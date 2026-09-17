@@ -46,7 +46,7 @@ func TestGenerate(t *testing.T) {
 			if err := generate(dir); err != nil {
 				t.Fatal(err)
 			}
-			for _, name := range []string{"awss.rb", "PKGBUILD", ".SRCINFO"} {
+			for _, name := range []string{"awss.rb", "PKGBUILD", "SRCINFO"} {
 				data, err := os.ReadFile(filepath.Clean(filepath.Join(dir, "packages", name)))
 				if err != nil {
 					t.Fatal(err)

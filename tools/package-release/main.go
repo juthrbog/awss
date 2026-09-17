@@ -87,7 +87,8 @@ func generate(dist string) error {
 	for _, file := range []struct{ template, name string }{
 		{"awss.rb.tmpl", "awss.rb"},
 		{"PKGBUILD.tmpl", "PKGBUILD"},
-		{"SRCINFO.tmpl", ".SRCINFO"},
+		// GitHub rewrites leading-dot asset names; users rename this for AUR submission.
+		{"SRCINFO.tmpl", "SRCINFO"},
 	} {
 		tmpl, err := template.ParseFS(templates, "templates/"+file.template)
 		if err != nil {

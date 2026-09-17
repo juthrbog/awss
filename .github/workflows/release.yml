@@ -61,7 +61,13 @@ jobs:
         run: |
           gh release upload "$RELEASE_TAG" --clobber \
             dist/packages/awss.rb dist/packages/PKGBUILD \
-            dist/packages/.SRCINFO dist/packages/packaging_checksums.txt
+            dist/packages/SRCINFO dist/packages/packaging_checksums.txt
+          # Verify uploaded filenames and bytes before publishing.
+          verify_dir="$(mktemp -d)"
+          gh release download "$RELEASE_TAG" --dir "$verify_dir" \
+            --pattern awss.rb --pattern PKGBUILD --pattern SRCINFO \
+            --pattern packaging_checksums.txt
+          (cd "$verify_dir" && sha256sum -c packaging_checksums.txt)
           gh release edit "$RELEASE_TAG" --draft=false
 
       - name: Check Homebrew publication setup
