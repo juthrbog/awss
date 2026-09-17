@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/juthrbog/awss/internal/config"
@@ -22,20 +23,17 @@ var selectCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	// Cobra prints RunE errors to stderr automatically, keeping stdout clean.
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := args[0]
-
-		profile, err := config.LoadProfile(
-			config.DefaultConfigPath(),
-			config.DefaultCredentialsPath(),
-			name,
-		)
-		if err != nil {
-			return err
-		}
-
-		fmt.Print(formatExports(profile, shellFlag))
-		return nil
+		return writeProfileExports(cmd.OutOrStdout(), args[0], shellFlag)
 	},
+}
+
+func writeProfileExports(out io.Writer, name, shell string) error {
+	profile, err := config.LoadProfile(config.DefaultConfigPath(), config.DefaultCredentialsPath(), name)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprint(out, formatExports(profile, shell))
+	return err
 }
 
 // formatExports builds the export statements for a given profile.

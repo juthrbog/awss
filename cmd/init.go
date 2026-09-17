@@ -52,15 +52,25 @@ const posixTmpl = `# awss shell integration
 #   eval "$({{.BinaryPath}} init {{.Shell}})"
 
 awss() {
-  case "$1" in
-    ""|init|list|login|help|completion|--help|-h)
-      command "{{.BinaryPath}}" "$@"
+  local output exit_code
+  if [ "$#" -eq 0 ]; then
+    # Piped input produces a plain list, which must never be evaluated.
+    if [ ! -t 0 ]; then
+      command "{{.BinaryPath}}"
       return $?
-      ;;
-  esac
-  local output
-  output=$(command "{{.BinaryPath}}" select "$@")
-  local exit_code=$?
+    fi
+    output=$(command "{{.BinaryPath}}")
+    exit_code=$?
+  else
+    case "$1" in
+      init|list|login|help|completion|--help|-h)
+        command "{{.BinaryPath}}" "$@"
+        return $?
+        ;;
+    esac
+    output=$(command "{{.BinaryPath}}" select "$@")
+    exit_code=$?
+  fi
   if [ $exit_code -eq 0 ]; then
     eval "$output"
   fi
@@ -73,15 +83,28 @@ const fishTmpl = `# awss shell integration
 #   {{.BinaryPath}} init fish | source
 
 function awss
-  switch "$argv[1]"
-    case '' init list login help completion --help -h
-      command "{{.BinaryPath}}" $argv
+  set -l output
+  set -l cmd_status
+  if test (count $argv) -eq 0
+    # Piped input produces a plain list, which must never be evaluated.
+    if not test -t 0
+      command "{{.BinaryPath}}"
       return $status
+    end
+    set output (command "{{.BinaryPath}}" --shell fish)
+    set cmd_status $status
+  else
+    switch "$argv[1]"
+      case init list login help completion --help -h
+        command "{{.BinaryPath}}" $argv
+        return $status
+    end
+    set output (command "{{.BinaryPath}}" select --shell fish $argv)
+    set cmd_status $status
   end
-  set -l output (command "{{.BinaryPath}}" select --shell fish $argv)
-  set -l cmd_status $status
   if test $cmd_status -eq 0
-    eval $output
+    # Fish splits command substitutions into lines; preserve those separators.
+    printf '%s\n' $output | source
   end
   return $cmd_status
 end
