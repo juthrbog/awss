@@ -8,12 +8,13 @@
   bash/zsh/fish completions. Releases also include a prefixed source archive and
   `checksums.txt` (SHA-256).
 - `tools/package-release` verifies all seven archives against the checksum file,
-  then generates `awss.rb`, `PKGBUILD`, `.SRCINFO`, and
+  then generates `awss.rb`, `PKGBUILD`, `SRCINFO`, and
   `packaging_checksums.txt`. The Homebrew formula supports macOS and Linux, on
   Intel and ARM64. The AUR recipe builds from the checksummed source archive.
 - A push of a `v*` tag runs `.github/workflows/release.yml`. Tests and lint must
   pass before GoReleaser creates a **draft** release. The workflow attaches and
-  validates the package recipes before publishing the release.
+  validates the package recipes, including a download/checksum round trip, before
+  publishing the release.
 - Stable releases update the Homebrew tap when its deploy key or token is configured.
   Prereleases do not change the stable formula. AUR submission is manual.
 - Pushes to `main` and pull requests run build, vet, and race tests on Linux,
@@ -28,8 +29,8 @@ not a cask, without relying on GoReleaser's deprecated `brews` integration.
 
 The public [juthrbog/homebrew-tap](https://github.com/juthrbog/homebrew-tap)
 repository is initialized, and a repository-scoped SSH deploy key has been
-provisioned for publishing. The first formula still requires the release workflow
-to be merged and a stable version tagged.
+provisioned for publishing. The first stable release, `v0.1.0`, published the
+initial formula.
 
 For recreating or rotating this setup:
 
@@ -53,7 +54,7 @@ settings. To rotate it, replace the Actions secret with a new dedicated key and
 remove the old deploy key from the tap after verifying publication. Deploy keys
 do not automatically expire; revoke access when it is no longer needed.
 
-After the first stable release updates the tap, verify on macOS and Linux:
+After each stable release updates the tap, verify on macOS and Linux:
 
 ```bash
 brew install juthrbog/tap/awss
@@ -68,15 +69,19 @@ URLs intentionally refer to a nonexistent snapshot release.
 ## One-time AUR setup and updates
 
 The repository includes a PKGBUILD template; every release generates an actual
-`PKGBUILD` and `.SRCINFO` with its version, source URL, and SHA-256 checksum.
+`PKGBUILD` and `SRCINFO` with its version, source URL, and SHA-256 checksum.
+The release asset is named `SRCINFO` because GitHub rewrites leading-dot asset
+names. After verifying checksums, copy it to `.SRCINFO` for AUR use; regenerate
+it with `makepkg --printsrcinfo` after making any recipe changes.
 No AUR account, SSH key, or automatic AUR push is configured here.
 
-For a stable release, download `PKGBUILD`, `.SRCINFO`, and
+For a stable release, download `PKGBUILD`, `SRCINFO`, and
 `packaging_checksums.txt` from that release. To verify the full recipe manifest,
 also download `awss.rb`. In the download directory:
 
 ```bash
 sha256sum -c packaging_checksums.txt
+cp SRCINFO .SRCINFO
 makepkg --verifysource
 makepkg --cleanbuild --syncdeps
 makepkg --printsrcinfo > .SRCINFO
