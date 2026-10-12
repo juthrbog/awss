@@ -25,12 +25,12 @@ func TestShellQualityOfLife(t *testing.T) {
 			if err != nil {
 				t.Skipf("%s not installed", shell)
 			}
-			profileFixture(t)
+			configPath := profileFixture(t)
 			t.Setenv("AWS_REGION", "us-west-2")
 			// Verify exports preserve shell metacharacters as data in each shell.
 			name := "team's dev\\ops;$HOME"
 			t.Setenv("AWSS_TEST_PROFILE", name)
-			file, err := os.OpenFile(filepath.Clean(os.Getenv("AWS_CONFIG_FILE")), os.O_APPEND|os.O_WRONLY, 0600)
+			file, err := os.OpenFile(filepath.Clean(configPath), os.O_APPEND|os.O_WRONLY, 0600)
 			if err != nil {
 				t.Fatal(err)
 			}

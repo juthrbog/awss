@@ -87,7 +87,7 @@ makepkg --cleanbuild --syncdeps
 makepkg --printsrcinfo > .SRCINFO
 ```
 
-Run `makepkg` as a regular user on Arch Linux. The recipe needs Go 1.27.1 or
+Run `makepkg` as a regular user on Arch Linux. The recipe needs Go 1.27.2 or
 newer and targets `x86_64` / `aarch64`. Review the generated `.SRCINFO` and test
 installing the package before submitting/updating the `awss` AUR repository with
 your own AUR account. Check that the name is available or coordinate with its

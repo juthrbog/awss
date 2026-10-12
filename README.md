@@ -175,7 +175,7 @@ manual; see [the release guide](docs/releasing.md).
 
 ### Go install / local build
 
-Requires **Go 1.27.1 or newer**:
+Requires **Go 1.27.2 or newer**:
 
 ```bash
 go install github.com/juthrbog/awss@latest

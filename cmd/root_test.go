@@ -11,7 +11,9 @@ import (
 	"testing"
 )
 
-func profileFixture(t *testing.T) {
+// profileFixture points the AWS config and credentials files at new files in
+// a temporary directory, and returns the path of the config file.
+func profileFixture(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
 	configPath := filepath.Join(dir, "config")
@@ -26,6 +28,7 @@ func profileFixture(t *testing.T) {
 	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", credentialsPath)
 	t.Setenv("AWS_PROFILE", "default")
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(dir, "cache"))
+	return configPath
 }
 
 func TestDefaultNonTTY(t *testing.T) {
