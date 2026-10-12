@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 
+	"github.com/juthrbog/awss/internal/browser"
 	"github.com/juthrbog/awss/internal/settings"
 	"github.com/juthrbog/awss/internal/sso"
 )
@@ -99,7 +99,7 @@ Functions:
 		template := firstNonEmpty(loginOpts.template, org.Template, sso.DefaultNameTemplate)
 
 		if loginOpts.browserOnly {
-			return browser.OpenURL(org.StartURL)
+			return browser.Open(org.StartURL)
 		}
 
 		loader := sso.NewLoader(org.StartURL, region)

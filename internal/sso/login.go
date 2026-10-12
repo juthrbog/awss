@@ -10,8 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssooidc"
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
-	"github.com/pkg/browser"
 
+	"github.com/juthrbog/awss/internal/browser"
 	"github.com/juthrbog/awss/internal/config"
 )
 
@@ -144,7 +144,7 @@ func (loader Loader) promptUser(url string) {
 		fmt.Fprintf(os.Stderr, "Open this link to complete login:\n%s\n", url)
 		return
 	}
-	if err := browser.OpenURL(url); err != nil {
+	if err := browser.Open(url); err != nil {
 		fmt.Fprintf(os.Stderr, "Could not open a browser. Open this link to complete login:\n%s\n", url)
 		return
 	}
