@@ -2,8 +2,6 @@
 
 A fast, interactive AWS profile and region switcher. Like [kubectx](https://github.com/ahmetb/kubectx) for AWS.
 
-> **Status:** Early development. Profile and region picking, previous-profile switching, shell completions, and SSO login work.
-
 ## Install
 
 Release binaries are on the [latest release page](https://github.com/juthrbog/awss/releases/latest).
