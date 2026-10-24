@@ -66,36 +66,8 @@ func stsCredentialsFromINISection(s *ini.Section) STSCredentials {
 	}
 }
 
-// clearSTSCredentials drops expired managed credentials for startURL from the
-// AWS credentials file. Unexpired ones are left alone.
-func clearSTSCredentials(path, startURL string) error {
-	f, err := loadINI(path)
-	if err != nil {
-		return err
-	}
-	if err := updateCredentialsINI(f, nil, startURL); err != nil {
-		return err
-	}
-	return f.SaveTo(path)
-}
-
-// updateSTSCredentials fetches STS credentials for every profile and writes
-// them to the AWS credentials file.
-func (loader Loader) updateSTSCredentials(ctx context.Context, accessToken string, profiles []Profile, path string) error {
-	f, err := loadINI(path)
-	if err != nil {
-		return err
-	}
-	creds, err := loader.fetchSTSCredentials(ctx, accessToken, profiles)
-	if err != nil {
-		return err
-	}
-	if err := updateCredentialsINI(f, creds, loader.StartURL); err != nil {
-		return err
-	}
-	return f.SaveTo(path)
-}
-
+// updateCredentialsINI writes creds into the AWS credentials file and drops
+// expired managed credentials for startURL. Unexpired ones are left alone.
 func updateCredentialsINI(f *ini.File, creds []STSCredentials, startURL string) error {
 	stale := managedSections(f, startURL)
 	for _, c := range creds {
