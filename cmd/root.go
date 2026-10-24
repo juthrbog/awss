@@ -42,6 +42,9 @@ func newRootCommand() *cobra.Command {
 				if len(args) != 0 {
 					return fmt.Errorf("--current does not accept a profile argument")
 				}
+				if files.configOverride || files.credentialsOverride {
+					return fmt.Errorf("--current reads only the environment; it does not accept --config-file or --credentials-file")
+				}
 				return writeCurrent(cmd.OutOrStdout())
 			case cmd.Flags().Changed("region"):
 				if region == interactiveRegion {
@@ -53,7 +56,7 @@ func newRootCommand() *cobra.Command {
 					}
 					region = args[0]
 				}
-				return runRegion(cmd.OutOrStdout(), shell, region, interactive, choose("region"))
+				return files.runRegion(cmd.OutOrStdout(), shell, region, interactive, choose("region"))
 			case len(args) == 1:
 				return files.writeProfileExports(cmd.OutOrStdout(), args[0], shell)
 			default:

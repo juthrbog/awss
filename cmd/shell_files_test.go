@@ -28,6 +28,8 @@ func TestShellFileOverrides(t *testing.T) {
 			configPath, credentialsPath := overrideFixture(t)
 			t.Setenv("AWSS_TEST_CONFIG", configPath)
 			t.Setenv("AWSS_TEST_CREDENTIALS", credentialsPath)
+			otherConfigPath := filepath.Join(t.TempDir(), "other-config")
+			t.Setenv("AWSS_TEST_OTHER_CONFIG", otherConfigPath)
 			wrapper, err := renderInit(shell, binary)
 			if err != nil {
 				t.Fatal(err)
@@ -46,6 +48,9 @@ awss custom-credentials
 awss -c
 awss -
 awss -c
+awss -r eu-north-1 --config-file "$AWSS_TEST_OTHER_CONFIG"
+awss -c
+printf '%s\n' "$AWS_CONFIG_FILE"
 `
 			args := []string{"--noprofile", "--norc", "-c", script}
 			switch shell {
@@ -66,6 +71,7 @@ awss -c
 				"custom (eu-west-3)", configPath, credentialsPath,
 				"custom-credentials (ap-northeast-1)",
 				"custom (eu-west-3)",
+				"custom (eu-north-1)", otherConfigPath,
 			}, "\n") + "\n"
 			if string(out) != want {
 				t.Fatalf("output = %q\nwant = %q", out, want)

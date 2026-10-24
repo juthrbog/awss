@@ -112,6 +112,66 @@ func TestFileFlagsPicker(t *testing.T) {
 	}
 }
 
+func TestFileFlagsRegion(t *testing.T) {
+	profileFixture(t)
+	configPath, credentialsPath := overrideFixture(t)
+	for _, shell := range []string{"bash", "zsh", "fish"} {
+		out, err := executeRoot("--config-file", configPath, "--credentials-file", credentialsPath, "--shell", shell, "-r", "eu-west-1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, want := range []string{"AWS_REGION", "eu-west-1", "AWS_CONFIG_FILE", quoteShellValue(configPath, shell), "AWS_SHARED_CREDENTIALS_FILE", quoteShellValue(credentialsPath, shell)} {
+			if !strings.Contains(out, want) {
+				t.Errorf("%s output %q missing %q", shell, out, want)
+			}
+		}
+		if strings.Contains(out, "AWS_PROFILE") {
+			t.Errorf("region switch must not change AWS_PROFILE: %q", out)
+		}
+	}
+	out, err := executeRoot("-r", "eu-west-1", "--config-file", configPath)
+	if err != nil || !strings.Contains(out, "AWS_CONFIG_FILE=") || strings.Contains(out, "AWS_SHARED_CREDENTIALS_FILE=") {
+		t.Fatalf("only explicit paths should be exported: %q, %v", out, err)
+	}
+	out, err = executeRoot("-r", "eu-west-1")
+	if err != nil || out != "export AWS_REGION=eu-west-1\n" {
+		t.Fatalf("without flags only the region should be exported: %q, %v", out, err)
+	}
+
+	cmd := newRootCommand()
+	if err := cmd.ParseFlags([]string{"--config-file", configPath}); err != nil {
+		t.Fatal(err)
+	}
+	files, err := resolveAWSFiles(cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cancelled bytes.Buffer
+	if err := files.runRegion(&cancelled, "bash", "", true, func([]string, string) (string, error) { return "", nil }); err != nil {
+		t.Fatal(err)
+	}
+	if cancelled.Len() != 0 {
+		t.Fatalf("cancelled region picker emitted exports: %q", cancelled.String())
+	}
+}
+
+func TestFileFlagsCurrentRejected(t *testing.T) {
+	profileFixture(t)
+	configPath, credentialsPath := overrideFixture(t)
+	for _, args := range [][]string{
+		{"-c", "--config-file", configPath},
+		{"--current", "--credentials-file", credentialsPath},
+	} {
+		out, err := executeRoot(args...)
+		if err == nil || !strings.Contains(err.Error(), "--current") || out != "" {
+			t.Fatalf("%v: want an error and no output, got %q, %v", args, out, err)
+		}
+	}
+	if _, err := executeRoot("-c"); err != nil {
+		t.Fatalf("--current without file flags: %v", err)
+	}
+}
+
 func TestFileFlagsCompletion(t *testing.T) {
 	profileFixture(t)
 	configPath, credentialsPath := overrideFixture(t)
