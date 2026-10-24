@@ -162,7 +162,7 @@ func TestRegionPicker(t *testing.T) {
 	t.Setenv("AWS_REGION", "eu-west-1")
 	for _, selection := range []string{"us-east-1", ""} {
 		var out bytes.Buffer
-		err := runRegion(&out, "", "", true, func(names []string, current string) (string, error) {
+		err := awsFiles{}.runRegion(&out, "", "", true, func(names []string, current string) (string, error) {
 			if !slices.Contains(names, "us-east-1") || current != "eu-west-1" {
 				t.Fatalf("picker got %v, %q", names, current)
 			}
@@ -177,11 +177,11 @@ func TestRegionPicker(t *testing.T) {
 		}
 	}
 	var out bytes.Buffer
-	if err := runRegion(&out, "", "", false, nil); err == nil || out.Len() != 0 {
+	if err := (awsFiles{}).runRegion(&out, "", "", false, nil); err == nil || out.Len() != 0 {
 		t.Fatalf("non-TTY picker = %q, %v", out.String(), err)
 	}
 	want := errors.New("picker failed")
-	err := runRegion(&out, "", "", true, func([]string, string) (string, error) { return "", want })
+	err := awsFiles{}.runRegion(&out, "", "", true, func([]string, string) (string, error) { return "", want })
 	if !errors.Is(err, want) || out.Len() != 0 {
 		t.Fatalf("picker error = %q, %v", out.String(), err)
 	}

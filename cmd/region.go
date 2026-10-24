@@ -22,7 +22,9 @@ func writeCurrent(out io.Writer) error {
 	return err
 }
 
-func runRegion(out io.Writer, shell, region string, interactive bool, choose func([]string, string) (string, error)) error {
+// runRegion exports the chosen region, plus any explicitly selected AWS file
+// paths so a region switch keeps the shell on the same files.
+func (files awsFiles) runRegion(out io.Writer, shell, region string, interactive bool, choose func([]string, string) (string, error)) error {
 	if err := validateShell(shell); err != nil {
 		return err
 	}
@@ -42,7 +44,7 @@ func runRegion(out io.Writer, shell, region string, interactive bool, choose fun
 	if !regions.Valid(region) {
 		return fmt.Errorf("unknown AWS region %q", region)
 	}
-	_, err := fmt.Fprint(out, formatRegionExport(region, shell))
+	_, err := fmt.Fprint(out, formatRegionExport(region, shell)+files.exports(shell))
 	return err
 }
 

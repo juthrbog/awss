@@ -171,8 +171,9 @@ awss select production --shell fish | source
 - It sets `AWS_PROFILE` to the profile that you select.
 - It sets `AWS_REGION` to the region of the profile. If the profile has no
   region, it unsets `AWS_REGION`. A region that you set by hand does not stay.
-- If you switch profiles with `--config-file` or `--credentials-file`, it also
-  sets `AWS_CONFIG_FILE` or `AWS_SHARED_CREDENTIALS_FILE`. See [Custom AWS file paths](#custom-aws-file-paths).
+- If you switch profiles or regions with `--config-file` or
+  `--credentials-file`, it also sets `AWS_CONFIG_FILE` or
+  `AWS_SHARED_CREDENTIALS_FILE`. See [Custom AWS file paths](#custom-aws-file-paths).
 
 `awss` does not read or cache credentials. The AWS CLI and SDKs do that.
 
@@ -198,7 +199,8 @@ change.
 
 `awss -c` (or `awss --current`) prints `AWS_PROFILE (AWS_REGION)` from the
 current environment. A missing value shows as `<unset>`. The command does not
-look up the default region of the profile.
+look up the default region of the profile. It does not accept `--config-file`
+or `--credentials-file`.
 
 ## Region switching
 
@@ -207,7 +209,8 @@ the current `AWS_REGION`. The picker needs a terminal.
 
 To switch to a region directly, run `awss -r eu-west-1` (or
 `awss --region=eu-west-1`). This also works when input comes from a pipe or a
-file. A region switch changes only `AWS_REGION`. `AWS_PROFILE` and the
+file. A region switch changes `AWS_REGION`, and the AWS file paths if you
+give `--config-file` or `--credentials-file`. `AWS_PROFILE` and the
 previous-profile history do not change.
 
 The region list is built into awss. It includes the commercial, China, GovCloud,
@@ -236,14 +239,17 @@ environment variable, then the default.
 The flags work with these commands, before or after the subcommand:
 
 - The picker, `awss <name>`, `awss select`, and `awss -`.
+- `awss -r` (the region picker and `awss -r <region>`).
 - `awss list` and profile completion. These do not change your environment.
 - `awss login`.
 
-`awss -r` and `awss -c` accept the flags but do not use them.
+`awss -c` stops with an error if you give the flags, because it reads only the
+environment.
 
-When you select a profile, shell integration also exports the file paths that
-you gave. Later AWS CLI and SDK calls then use the same files. awss exports
-relative paths as absolute paths. If you cancel the picker, nothing changes.
+When you select a profile or a region, shell integration also exports the file
+paths that you gave. Later AWS CLI and SDK calls then use the same files. awss
+exports relative paths as absolute paths. If you cancel a picker, nothing
+changes.
 
 The flags do not copy or overwrite files. `awss login` writes to the files that
 you choose instead of the defaults. `--config-file` is the AWS config file. It
