@@ -1,6 +1,7 @@
 package sso
 
 import (
+	"strings"
 	"testing"
 
 	"gopkg.in/ini.v1"
@@ -62,6 +63,41 @@ func TestUpdateINIFile_RejectsUnmanagedSection(t *testing.T) {
 
 	if err := testProfile().updateINIFile(f); err == nil {
 		t.Fatal("expected error when updating unmanaged section")
+	}
+}
+
+func TestUpdateINIFile_RejectsOtherStartURL(t *testing.T) {
+	f := ini.Empty()
+	s := f.Section("profile test-profile")
+	mustKey(t, s, managedKey, "true")
+	mustKey(t, s, "sso_start_url", "https://other.awsapps.com/start")
+
+	err := testProfile().updateINIFile(f)
+	if err == nil {
+		t.Fatal("expected error when updating a section managed for another start URL")
+	}
+	for _, want := range []string{"test-profile", "https://other.awsapps.com/start", "https://example.awsapps.com/start", "--template"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q does not mention %q", err, want)
+		}
+	}
+	if got := s.Key("sso_start_url").Value(); got != "https://other.awsapps.com/start" {
+		t.Errorf("sso_start_url = %q, want the other start URL to be kept", got)
+	}
+}
+
+func TestUpdateINIFile_UpdatesSameStartURL(t *testing.T) {
+	f := ini.Empty()
+	s := f.Section("profile test-profile")
+	mustKey(t, s, managedKey, "true")
+	mustKey(t, s, "sso_start_url", testProfile().SSOStartURL)
+	mustKey(t, s, "sso_role_name", "OldRole")
+
+	if err := testProfile().updateINIFile(f); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := s.Key("sso_role_name").Value(); got != "AdminRole" {
+		t.Errorf("sso_role_name = %q, want AdminRole", got)
 	}
 }
 

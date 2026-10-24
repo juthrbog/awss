@@ -1,6 +1,7 @@
 package sso
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -62,5 +63,27 @@ func TestSTSCredentials_RejectsUnmanaged(t *testing.T) {
 	c := STSCredentials{Name: "mine"}
 	if err := c.updateINIFile(f, "https://example.awsapps.com/start"); err == nil {
 		t.Fatal("expected error writing over unmanaged credentials")
+	}
+}
+
+func TestSTSCredentials_RejectsOtherStartURL(t *testing.T) {
+	f := ini.Empty()
+	s := f.Section("shared")
+	mustKey(t, s, managedKey, "true")
+	mustKey(t, s, "sso_start_url", "https://other.awsapps.com/start")
+	mustKey(t, s, "aws_access_key_id", "FAKE_KEY_OTHER")
+
+	c := STSCredentials{Name: "shared", AccessKeyID: "FAKE_KEY_NEW"}
+	err := c.updateINIFile(f, "https://example.awsapps.com/start")
+	if err == nil {
+		t.Fatal("expected error writing over credentials managed for another start URL")
+	}
+	for _, want := range []string{"shared", "https://other.awsapps.com/start", "https://example.awsapps.com/start", "--template"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q does not mention %q", err, want)
+		}
+	}
+	if got := f.Section("shared").Key("aws_access_key_id").Value(); got != "FAKE_KEY_OTHER" {
+		t.Errorf("aws_access_key_id = %q, want the other start URL's key to be kept", got)
 	}
 }

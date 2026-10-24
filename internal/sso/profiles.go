@@ -31,11 +31,17 @@ func (p Profile) configSectionName() string {
 }
 
 // updateINIFile creates or refreshes the section for this profile. It refuses
-// to touch a section that exists but is not managed by awss.
+// to touch a section that exists but is not managed by awss, or that awss
+// manages for a different start URL.
 func (p Profile) updateINIFile(f *ini.File) error {
 	n := p.configSectionName()
-	if sectionExists(f, n) && !isManagedSection(f, n) {
-		return fmt.Errorf("profile %q already exists and is not managed by awss", p.Name)
+	if sectionExists(f, n) {
+		if !isManagedSection(f, n) {
+			return fmt.Errorf("profile %q already exists and is not managed by awss", p.Name)
+		}
+		if other := otherStartURL(f, n, p.SSOStartURL); other != "" {
+			return fmt.Errorf("profile %q is managed by awss for start URL %s, not %s; use a --template that gives unique names, or delete the old profile if you no longer use that start URL", p.Name, other, p.SSOStartURL)
+		}
 	}
 
 	s := f.Section(n)
