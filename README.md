@@ -299,7 +299,9 @@ config file (default `~/.aws/config`).
 Each login replaces all managed profiles for the same start URL. awss removes a
 managed profile when it no longer matches a role. This also applies when you
 use `--account` or `--role`: awss removes the managed profiles outside the
-filter. If no account or role matches, awss writes and removes nothing.
+filter. If no account or role matches, awss does not change the profiles in
+your config file. It still removes expired managed keys for the start URL from
+your credentials file.
 Managed profiles for other start URLs do not change.
 
 The login stops with an error if a generated profile name is the same as one of
