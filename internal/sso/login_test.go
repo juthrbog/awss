@@ -43,6 +43,20 @@ func TestConfigureProfiles_ErrorsLeaveFilesUnchanged(t *testing.T) {
 			wantErr:     "not managed by awss",
 		},
 		{
+			name:        "config managed for another start URL",
+			config:      managedConfig + "[profile test-profile]\nawss_managed = true\nsso_start_url = https://other.example.invalid/start\n",
+			credentials: expiredCreds,
+			client:      filePathSSOClient{},
+			wantErr:     "managed by awss for start URL https://other.example.invalid/start",
+		},
+		{
+			name:        "credentials managed for another start URL",
+			config:      managedConfig,
+			credentials: expiredCreds + "[test-profile]\nawss_managed = true\nsso_start_url = https://other.example.invalid/start\n",
+			client:      filePathSSOClient{},
+			wantErr:     "managed by awss for start URL https://other.example.invalid/start",
+		},
+		{
 			name:        "sts fetch error",
 			config:      managedConfig,
 			credentials: expiredCreds,

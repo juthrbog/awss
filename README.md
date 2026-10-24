@@ -294,13 +294,22 @@ Each login replaces all managed profiles for the same start URL. awss removes a
 managed profile when it no longer matches a role. This also applies when you
 use `--account` or `--role`: awss removes the managed profiles outside the
 filter. If no account or role matches, awss writes and removes nothing.
-Managed profiles for other start URLs do not change, unless a new profile has
-the same name. In that case, awss overwrites that profile.
+Managed profiles for other start URLs do not change.
 
-If a generated profile name is the same as a hand-written profile, the login
-stops with an error. With `--sts`, awss also checks the credentials file. A
-clash in either file leaves both files unchanged. Rename your profile or change
-`--template`. The SSO token that awss caches in `~/.aws/sso/cache` stays.
+The login stops with an error if a generated profile name is the same as one of
+these profiles:
+
+- A hand-written profile.
+- A managed profile for a different start URL.
+
+With `--sts`, awss also checks the credentials file. A clash in either file
+leaves both files unchanged. Rename your profile or change `--template`. The
+SSO token that awss caches in `~/.aws/sso/cache` stays.
+
+awss compares start URLs exactly, character for character. If you change the
+start URL of an org, the managed profiles for the old URL stay, and they block
+the next login. Delete those profiles from your AWS config file, and from your
+credentials file if you use `--sts`. Then log in again.
 
 ```bash
 awss login --start-url https://example.awsapps.com/start

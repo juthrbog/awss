@@ -26,11 +26,15 @@ func (c STSCredentials) expired() bool {
 }
 
 // updateINIFile replaces the credentials section for this profile. It refuses
-// to touch a section that exists but is not managed by awss.
+// to touch a section that exists but is not managed by awss, or that awss
+// manages for a different start URL.
 func (c STSCredentials) updateINIFile(f *ini.File, startURL string) error {
 	if sectionExists(f, c.Name) {
 		if !isManagedSection(f, c.Name) {
 			return fmt.Errorf("credentials for profile %q already exist and are not managed by awss", c.Name)
+		}
+		if other := otherStartURL(f, c.Name, startURL); other != "" {
+			return fmt.Errorf("credentials for profile %q are managed by awss for start URL %s, not %s; use a --template that gives unique names, or delete the old credentials if you no longer use that start URL", c.Name, other, startURL)
 		}
 		f.DeleteSection(c.Name)
 	}

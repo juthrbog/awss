@@ -37,6 +37,17 @@ func isManagedSection(f *ini.File, name string) bool {
 	return isKeyTrue(f.Section(name), managedKey)
 }
 
+// otherStartURL returns the sso_start_url of the existing section name when
+// it differs from startURL, or "" when awss may write the section for
+// startURL. A section without a start URL belongs to no other org.
+func otherStartURL(f *ini.File, name, startURL string) string {
+	other := f.Section(name).Key("sso_start_url").Value()
+	if other == startURL {
+		return ""
+	}
+	return other
+}
+
 // managedSections returns every awss-managed section whose sso_start_url
 // matches startURL, keyed by section name.
 func managedSections(f *ini.File, startURL string) map[string]*ini.Section {
