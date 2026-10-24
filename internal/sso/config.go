@@ -2,19 +2,8 @@ package sso
 
 import "gopkg.in/ini.v1"
 
-// updateConfigFile writes profiles into the AWS config file, removing managed
+// updateConfigINI writes profiles into the AWS config file, removing managed
 // sections for the same start URL that no longer correspond to a role.
-func updateConfigFile(path string, profiles []Profile) error {
-	f, err := loadINI(path)
-	if err != nil {
-		return err
-	}
-	if err := updateConfigINI(f, profiles); err != nil {
-		return err
-	}
-	return f.SaveTo(path)
-}
-
 func updateConfigINI(f *ini.File, profiles []Profile) error {
 	if len(profiles) == 0 {
 		return nil

@@ -297,12 +297,10 @@ filter. If no account or role matches, awss writes and removes nothing.
 Managed profiles for other start URLs do not change, unless a new profile has
 the same name. In that case, awss overwrites that profile.
 
-If a generated profile name is the same as a hand-written profile in your AWS
-config file, the login stops with an error. awss does not change the config
-file. Rename your profile or change `--template`. With `--sts`, awss checks the
-credentials file only after it writes the config file. If the clash is only in
-the credentials file, the new profiles stay in the config file. In all cases,
-the SSO token that awss caches in `~/.aws/sso/cache` stays.
+If a generated profile name is the same as a hand-written profile, the login
+stops with an error. With `--sts`, awss also checks the credentials file. A
+clash in either file leaves both files unchanged. Rename your profile or change
+`--template`. The SSO token that awss caches in `~/.aws/sso/cache` stays.
 
 ```bash
 awss login --start-url https://example.awsapps.com/start

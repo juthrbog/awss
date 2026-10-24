@@ -71,6 +71,9 @@ func (loader Loader) tokenOrLogin(ctx context.Context) (token, error) {
 // Every section this tool writes carries an awss_managed=true key so it never
 // touches profiles the user maintains by hand. Writing over an unmanaged
 // section is an error; the user has to remove or rename that section.
+//
+// Both files are updated in memory first and saved only when every update
+// succeeds, so a clash or STS error leaves both files unchanged.
 func (loader Loader) configureProfiles(ctx context.Context, accessToken string, opts LoginOptions) error {
 	profiles, err := loader.generateProfiles(ctx, accessToken, opts)
 	if err != nil {
@@ -83,13 +86,35 @@ func (loader Loader) configureProfiles(ctx context.Context, accessToken string, 
 	if credentialsPath == "" {
 		credentialsPath = config.DefaultCredentialsPath()
 	}
-	if err := updateConfigFile(configPath, profiles); err != nil {
+
+	configFile, err := loadINI(configPath)
+	if err != nil {
 		return err
 	}
-	if opts.WithSTS {
-		return loader.updateSTSCredentials(ctx, accessToken, profiles, credentialsPath)
+	if err := updateConfigINI(configFile, profiles); err != nil {
+		return err
 	}
-	return clearSTSCredentials(credentialsPath, loader.StartURL)
+
+	// Without --sts, creds stays nil and only expired managed keys are removed.
+	var creds []STSCredentials
+	if opts.WithSTS {
+		creds, err = loader.fetchSTSCredentials(ctx, accessToken, profiles)
+		if err != nil {
+			return err
+		}
+	}
+	credentialsFile, err := loadINI(credentialsPath)
+	if err != nil {
+		return err
+	}
+	if err := updateCredentialsINI(credentialsFile, creds, loader.StartURL); err != nil {
+		return err
+	}
+
+	if err := configFile.SaveTo(configPath); err != nil {
+		return err
+	}
+	return credentialsFile.SaveTo(credentialsPath)
 }
 
 // browserLogin runs the OIDC device authorization flow and caches the
